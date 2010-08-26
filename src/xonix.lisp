@@ -17,10 +17,11 @@
   (let ((query))
     (setf query (if range 
 		    (format nil *user-date-query* 
-			    (hunchentoot:url-encode user) 
+			    (hunchentoot:url-encode user :windows-1251)
 			    (hunchentoot:url-encode (getf range :from)) 
 			    (hunchentoot:url-encode (getf range :to)))
 		    (format nil *user-query* 
 			    (hunchentoot:url-encode user))))
     (normalize-xonix-output (http-request query))))
+					  
 			    

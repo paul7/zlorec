@@ -17,9 +17,27 @@
 	  </div>
 {/template}
 
+{template graph-form}
+	  <form action="{$graphurl}" method="post">
+	  	<div>
+		Username: <input type="text" name="user" />
+		</div>
+		<div>
+		<input type="text" name="amount" value="12" /> 
+			<input type="radio" name="unit" value="day" /> days
+		       	<input type="radio" name="unit" value="month" checked /> months
+			<input type="radio" name="unit" value="year" /> years
+		</div>
+		<input type="submit" name="send" value="Send" />
+	  </form>
+{/template}
 
 {template graph}
 	  <object data="{$graph}"></object>
+	  {foreach $item in $values}
+	  	   <div>{$item}</div>
+	  {/foreach}
+	  <a href="{$return}">Return</a>
 {/template}
 
 {template user-activity}

@@ -3,7 +3,8 @@
 	       #:drakma #:cl-ppcre #:local-time)
   :components ((:module "src"
 			:components ((:file "defmodule")
-				     (:file "xonix")
+				     (:file "xonix"
+					    :depends-on ("defmodule"))
 				     (:file "user-activity"
 					    :depends-on ("xonix"))
 				     (:file "graph"
