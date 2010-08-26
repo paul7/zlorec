@@ -33,15 +33,29 @@
     ((equalp unit "month") :month)
     ((equalp unit "year")  :year)))
 
+(defparameter *graph-height* 400)
+(defparameter *graph-width* 400)
+
 (restas:define-route user-activity ("useract.svg/:user/:unit/:amount"
 				    :parse-vars (list :amount #'parse-integer
 						      :unit #'validate-unit)
 				    :render-method #'zlorec.view:user-activity
 				    :content-type "image/svg+xml")
-  (cerror "go" (format nil "~a" unit))
-  (list :values (if (and (plusp (length user))
-			 (plusp amount))
-		    (get-user-activity user :unit unit :amount amount))))
+  (if (and (plusp (length user))
+	   (plusp amount))
+      (let* ((values (get-user-activity user :unit unit :amount amount))
+	     (max-value (apply #'max values))
+	     (bar-width (round (/ *graph-width* amount)))
+	     (offset -1)
+	     (scaled (mapcar #'(lambda (val)
+				 (list :y (round (* (* val 0.9) (/ *graph-height* max-value)))
+				       :x bar-width
+				       :offset (* (incf offset) bar-width)))
+			     values)))
+	(list :values scaled
+	      :width *graph-width*
+	      :height *graph-height*))
+      (list :error "bad parameters")))
 		      
 
 

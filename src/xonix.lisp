@@ -6,6 +6,8 @@
 
 (defvar *message-number-regex* "<span class=\"pagebanner\">Найдено сообщений: ([\\d,]+), показаны с 1 по 50. </span>")
 
+(defvar *xonix-encoding* :windows-1251)
+
 (defun normalize-xonix-output (response)
   (let ((numbers (nth-value 1 (scan-to-strings *message-number-regex* 
 					       response))))
@@ -17,7 +19,7 @@
   (let ((query))
     (setf query (if range 
 		    (format nil *user-date-query* 
-			    (hunchentoot:url-encode user :windows-1251)
+			    (hunchentoot:url-encode user *xonix-encoding*)
 			    (hunchentoot:url-encode (getf range :from)) 
 			    (hunchentoot:url-encode (getf range :to)))
 		    (format nil *user-query* 
