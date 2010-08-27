@@ -41,8 +41,8 @@
 {/template}
 
 {template svg-rect}
-     <rect x="{$offset}" y="0" height="{$y}" width="{$x}"
-     	   fill="gray" />
+     <rect x="{$offset}" y="{$height - $y}" height="{$y}" width="{$x}"
+     	   fill="gray" stroke="black" />
 {/template}
 
 {template user-activity}

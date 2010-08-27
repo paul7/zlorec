@@ -4,7 +4,7 @@
 
 (defvar *user-date-query* "http://zlo.rt.mipt.ru:7500/search?st=all&text=&topic=-1&inTitle=on&inBody=on&nick=~a&host=&dates=on&fd=~a&td=~a&site=0&pageSize=0&submitBtn=%C8%F1%EA%E0%F2%FC%21")
 
-(defvar *message-number-regex* "<span class=\"pagebanner\">Найдено сообщений: ([\\d,]+), показаны с 1 по 50. </span>")
+(defvar *message-number-regex* "<span class=\"pagebanner\">Найдено сообщений: ([\\d,]+), показаны")
 
 (defvar *xonix-encoding* :windows-1251)
 

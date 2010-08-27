@@ -5,6 +5,8 @@
 			:components ((:file "defmodule")
 				     (:file "xonix"
 					    :depends-on ("defmodule"))
+				     (:file "retriever"
+					    :depends-on ("defmodule"))
 				     (:file "user-activity"
 					    :depends-on ("xonix"))
 				     (:file "graph"
