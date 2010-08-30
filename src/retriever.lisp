@@ -51,27 +51,53 @@
     (if captured
 	(parse-integer (elt captured 0)))))
 
+(defun group (source n)
+  (if (zerop n) (error "zero length"))
+  (labels ((rec (source acc)
+             (let ((rest (nthcdr n source)))
+               (if (consp rest)
+                   (rec rest (cons
+                               (subseq source 0 n)
+                               acc))
+                   (nreverse
+                     (cons source acc))))))
+    (if source (rec source nil) nil)))
+
+(defmacro destruct-tag (((&rest attrs) &key tag body) elt &body code)
+  (let ((gtag (gensym))
+	(gbody (gensym))
+	(gplist (gensym))
+	(attrs (group attrs 2)))
+    `(destructuring-bind ((,gtag &rest ,gplist) &rest ,gbody) ,elt
+       (declare (ignore ,@(nconc (unless tag
+				   `(,gtag))
+				 (unless body
+				   `(,gbody))))) 
+       (let ,(nconc (if tag
+			`((,tag ,gtag)))
+		    (if body
+			`((,body ,gbody)))
+		    (mapcan #'(lambda (attr)
+				`((,(cadr attr) (getf ,gplist ,(car attr)))))
+			    attrs))
+	 ,@code))))
+
 (defun retreive-post (id)
   (let ((html (http-request (post-query id) 
 			    :external-format-in *zlo-encoding*))
 	(parent nil))
     (flet ((process-div (div)
 	     (unless parent
-	       (destructuring-bind ((tag &rest plist) &rest body) div
-		 (declare (ignore tag))
-		 (let ((parent-id (match-element-id *div-regex* 
-						    (getf plist :id))))
+	       (destruct-tag ((:id div-id) :body body) div
+		 (let ((parent-id (match-element-id *div-regex* div-id)))
 		   (if parent-id
 		       (loop 
 			  :for elt :in body 
 			  :until parent
 			  :do
-			  (destructuring-bind ((tag &rest plist) &rest body)
-			      elt
-			    (declare (ignore body))
+			  (destruct-tag ((:id span-id) :tag tag) elt
 			    (if (and (eq tag :span)
-				     (equal (match-element-id *span-regex* 
-							      (getf plist :id)) 
+				     (equal (match-element-id *span-regex* span-id)
 					    id))
 				(setf parent parent-id))))))))))
       (parse-html html 
