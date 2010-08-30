@@ -44,7 +44,7 @@
   (if (and (plusp (length user))
 	   (plusp amount))
       (let* ((values (get-user-activity user :unit unit :amount amount))
-	     (max-value (1+ (apply #'max values)))
+	     (max-value (+ 0.1 (apply #'max values)))
 	     (bar-width (floor (/ *graph-width* amount)))
 	     (offset -1)
 	     (scaled (mapcar #'(lambda (val)
