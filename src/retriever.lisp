@@ -29,7 +29,7 @@
 	      :initform nil
 	      :initarg :unreg
 	      :accessor message-unreg)
-   (date      :col-type bigint
+   (date      :col-type date
 	      :initarg :date
 	      :accessor message-date)
    (children~ :initform nil
@@ -47,6 +47,7 @@
 
 (defparameter *div-regex* (create-scanner "^d(\\d+)$"))
 (defparameter *span-regex* (create-scanner "^m(\\d+)$"))
+(defparameter *time-regex* (create-scanner "(\\d+)/(\\d+)/(\\d+) (\\d+):(\\d+)"))
 
 (defun post-query (id)
   (format nil *post-query* id))
@@ -55,6 +56,13 @@
   (let ((captured (nth-value 1 (scan-to-strings regex id))))
     (if captured
 	(parse-integer (elt captured 0)))))
+
+(defun match-date (string)
+  (let ((captured (nth-value 1 (scan-to-strings *time-regex* string))))
+    (if captured 
+	(destructuring-bind (day month year hour minute) 
+	    (mapcar #'parse-integer (coerce captured 'list))
+	  (encode-timestamp 0 0 minute hour day month year)))))
 
 (defun html-open-tag (tag)
   (let ((tag (if (consp tag)
@@ -162,7 +170,6 @@
 			  ((when (and (eq tag :span)
 				    (eql (match-element-id *span-regex* span-id)
 					 id))
-			     (print elt)
 			     (setf parent parent-id))))))
 		    ((and (not root)
 			  (equalp div-class "w"))
@@ -197,10 +204,25 @@
 			     (setf author (car elt-body))
 			     (setf unreg nil)))))))
 		    ((and (not text) (equalp div-class "body"))
-		     (setf text body))))))))
+		     (setf text body)))))))
+	   (process-span (span)
+	     (destruct-tag ((:id span-id) :body body) span
+	       :on-tag
+	       ((when (eql (match-element-id *span-regex* span-id)
+			   id)
+		  (loop 
+		     :for elt :in body
+		     :until date
+		     :do
+		     (destruct-tag (() :body date-string) elt
+		       :on-text
+		       ((let ((span-date (match-date date-string)))
+			  (if span-date
+			      (setf date span-date)))))))))))
       (parse-html html 
 		  :callback-only t
-		  :callbacks `((:div . ,#'process-div)))
+		  :callbacks `((:div . ,#'process-div)
+			       (:span . ,#'process-span)))
       (if header
 	  (make-instance 'message 
 			 :id id
@@ -208,7 +230,7 @@
 			 :unreg unreg
 			 :root-id (or root 0)
 			 :parent-id (or parent 0)
-			 :date date
+			 :date (timestamp-to-unix date)
 			 :header (html-gen header)
 			 :text (html-gen text))))))
 
