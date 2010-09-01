@@ -29,7 +29,7 @@
 	      :initform nil
 	      :initarg :unreg
 	      :accessor message-unreg)
-   (date      :col-type date
+   (date      :col-type timestamp
 	      :initarg :date
 	      :accessor message-date)
    (children~ :initform nil
@@ -62,7 +62,7 @@
     (if captured 
 	(destructuring-bind (day month year hour minute) 
 	    (mapcar #'parse-integer (coerce captured 'list))
-	  (encode-timestamp 0 0 minute hour day month year)))))
+	  (simple-date:encode-timestamp year month day hour minute)))))
 
 (defun html-open-tag (tag)
   (let ((tag (if (consp tag)
@@ -230,7 +230,7 @@
 			 :unreg unreg
 			 :root-id (or root 0)
 			 :parent-id (or parent 0)
-			 :date (timestamp-to-unix date)
+			 :date date
 			 :header (html-gen header)
 			 :text (html-gen text))))))
 
