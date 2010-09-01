@@ -2,6 +2,7 @@
 
 (defclass message ()
   ((id        :col-type integer 
+	      :initarg :id
 	      :accessor message-id)
    (text      :col-type text 
 	      :initarg :text 
@@ -14,24 +15,28 @@
 	      :initarg :visible 
 	      :accessor message-visible)
    (parent-id :col-type integer
-	      :initform 0
 	      :initarg :parent-id 
 	      :accessor message-parent-id
 	      :foreign-key (message id))
    (root-id   :col-type integer 
-	      :initform 0
 	      :initarg :root-id 
 	      :accessor message-root-id
 	      :foreign-key (message id))
    (author    :col-type (varchar 80)
-	      :initform 1
 	      :initarg :author
 	      :accessor message-author)
+   (unreg     :col-type boolean
+	      :initform nil
+	      :initarg :unreg
+	      :accessor message-unreg)
+   (date      :col-type bigint
+	      :initarg :date
+	      :accessor message-date)
    (children~ :initform nil
-	      :initarg :children
+	      :initarg :children~
 	      :accessor message-children~)
    (thread~   :initform nil
-	      :initarg :thread
+	      :initarg :thread~
 	      :accessor message-thread~))
   (:keys id)
   (:metaclass dao-class))
@@ -50,40 +55,6 @@
   (let ((captured (nth-value 1 (scan-to-strings regex id))))
     (if captured
 	(parse-integer (elt captured 0)))))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun group (source n)
-    (if (zerop n) (error "zero length"))
-    (labels ((rec (source acc)
-	       (let ((rest (nthcdr n source)))
-		 (if (consp rest)
-		     (rec rest (cons
-				(subseq source 0 n)
-				acc))
-		     (nreverse
-		      (cons source acc))))))
-      (if source (rec source nil) nil))))
-
-(defmacro destruct-tag (((&rest attrs) &key tag body) elt &body code)
-  (let ((gtag (gensym))
-	(gbody (gensym))
-	(gplist (gensym))
-	(attrs (group attrs 2)))
-    `(if (consp ,elt)
-	 (destructuring-bind (,gtag &rest ,gbody) ,elt
-	   (declare (ignorable ,gbody))
-	   (destructuring-bind (,gtag &rest ,gplist) (if (consp ,gtag)
-							 ,gtag
-							 (list ,gtag))
-	     (declare (ignorable ,gtag ,gplist))
-	     (let ,(nconc (if tag
-			      `((,tag ,gtag)))
-			  (if body
-			      `((,body ,gbody)))
-			  (mapcan #'(lambda (attr)
-				      `((,(cadr attr) (getf ,gplist ,(car attr)))))
-				  attrs))
-	       ,@code))))))
 
 (defun html-open-tag (tag)
   (let ((tag (if (consp tag)
@@ -124,54 +95,150 @@
       (html-element lhtml)
       (apply #'concatenate 'string (mapcar #'html-element lhtml))))
 
-(defun retreive-post (id)
-  (let ((html (http-request (post-query id) 
-			    :external-format-in *zlo-encoding*))
-	(parent nil)
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun group (source n)
+    (if (zerop n) (error "zero length"))
+    (labels ((rec (source acc)
+	       (let ((rest (nthcdr n source)))
+		 (if (consp rest)
+		     (rec rest (cons
+				(subseq source 0 n)
+				acc))
+		     (nreverse
+		      (cons source acc))))))
+      (if source (rec source nil) nil))))
+
+(defmacro destruct-tag (((&rest attrs) &key tag body) elt &key on-tag on-text)
+  (let ((gtag (gensym))
+	(gbody (gensym))
+	(gplist (gensym))
+	(attrs (group attrs 2)))
+    `(if (atom ,elt)
+	 ,(if on-text
+	      `(let ((,gtag nil)
+		     (,gbody ,elt)
+		     (,gplist nil))
+		 (declare (ignorable ,gbody ,gtag ,gplist))
+		 (let ,(nconc (if body
+				  `((,body ,gbody))))
+		   ,@on-text)))
+	 ,(if on-tag
+	      `(destructuring-bind (,gtag &rest ,gbody) ,elt
+		 (declare (ignorable ,gbody))
+		 (destructuring-bind (,gtag &rest ,gplist) (if (consp ,gtag)
+							       ,gtag
+							       (list ,gtag))
+		   (declare (ignorable ,gtag ,gplist))
+		   (let ,(nconc (if tag
+				    `((,tag ,gtag)))
+				(if body
+				    `((,body ,gbody)))
+				(mapcan #'(lambda (attr)
+					    `((,(cadr attr) (getf ,gplist ,(car attr)))))
+					attrs))
+		     ,@on-tag)))))))
+
+(defun parse-post (id html)
+  (let ((parent nil)
 	(header nil)
 	(text nil)
-	(author nil))
+	(author nil)
+	(root nil)
+	(date nil)
+	(unreg nil))
     (flet ((process-div (div)
 	     (destruct-tag ((:id div-id :align div-align :class div-class) :body body) div
-	       (let ((parent-id (match-element-id *div-regex* div-id)))
-		 (cond 
-		   ((and (not parent) parent-id)
-		    (loop 
-		       :for elt :in body 
-		       :until parent
-		       :do
-		       (destruct-tag ((:id span-id) :tag tag) elt
-			 (if (and (eq tag :span)
-				  (eql (match-element-id *span-regex* span-id)
-				       id))
-			     (setf parent parent-id)))))
-		   ((and (not header) 
-			 (not author) 
-			 (equalp div-align "center"))
-		    (loop 
-		       :for elt :in body
-		       :until (and header author)
-		       :do
-		       (destruct-tag ((:class elt-class) 
-				      :tag tag :body elt-body) elt
-			 (cond  
-			   ((eq tag :big)
-			    (setf header (car elt-body)))
-			   ((or (eq tag :b)
-				(and (eq tag :a)
-				     (equalp elt-class "nn")))
-			    (setf author (car elt-body)))))))
-		   ((and (not text) (equalp div-class "body"))
-		    (setf text body)))))))
+	       :on-tag
+	       ((let ((parent-id (match-element-id *div-regex* div-id)))
+		  (cond 
+		    ((and (not parent) parent-id)
+		     (loop 
+			:for elt :in body 
+			:until parent
+			:do
+			(destruct-tag ((:id span-id) :tag tag) elt
+			  :on-tag
+			  ((when (and (eq tag :span)
+				    (eql (match-element-id *span-regex* span-id)
+					 id))
+			     (print elt)
+			     (setf parent parent-id))))))
+		    ((and (not root)
+			  (equalp div-class "w"))
+		     (loop 
+			:for elt :in body
+			:until root
+			:do
+			(destruct-tag ((:id span-id) :tag tag) elt
+			  :on-tag
+			  ((let ((span-id (match-element-id *span-regex* span-id)))
+			    (if (and (eq tag :span)
+				     span-id)
+				(setf root span-id)))))))
+		    ((and (not header) 
+			  (not author)
+			  (equalp div-align "center"))
+		     (loop 
+			:for elt :in body
+			:until (and header author)
+			:do
+			(destruct-tag ((:class elt-class) 
+				       :tag tag :body elt-body) elt
+			  :on-tag
+			  ((cond  
+			    ((eq tag :big)
+			     (setf header (car elt-body)))
+			    ((eq tag :b)
+			     (setf author (car elt-body))
+			     (setf unreg t))
+			    ((and (eq tag :a)
+				  (equalp elt-class "nn"))
+			     (setf author (car elt-body))
+			     (setf unreg nil)))))))
+		    ((and (not text) (equalp div-class "body"))
+		     (setf text body))))))))
       (parse-html html 
 		  :callback-only t
 		  :callbacks `((:div . ,#'process-div)))
-      (print (or parent 0))
-      (print (html-gen header))
-      (print (html-gen (or text "")))
-      (print author)
-      (values))))
+      (if header
+	  (make-instance 'message 
+			 :id id
+			 :author author
+			 :unreg unreg
+			 :root-id (or root 0)
+			 :parent-id (or parent 0)
+			 :date date
+			 :header (html-gen header)
+			 :text (html-gen text))))))
 
-     
-    
-  
+(defun retrieve-post (id)
+  (let ((html (http-request (post-query id) 
+			    :external-format-in *zlo-encoding*)))
+    (parse-post id html)))
+
+(defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost"))
+
+(defun install ()
+  (with-connection *db-spec*
+    (execute (dao-table-definition 'message))
+    (execute (:create-index 'author-index :on :message 
+			    :fields :author))))
+
+(defun uninstall ()
+  (with-connection *db-spec*
+    (if (yes-or-no-p "This operation will purge all data. Proceed?")
+	(execute (:drop-table 'message)))
+    (values)))
+
+(defun bulk-retrieve (from to)
+  (with-connection *db-spec*
+    (let ((last-ok nil))
+      (loop
+	 :for i :from from :to to
+	 :do
+	 (let ((msg (retrieve-post i)))
+	   (when msg
+	     (insert-dao msg)
+	     (setf last-ok i))))
+      last-ok)))

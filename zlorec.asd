@@ -1,6 +1,7 @@
 (defsystem #:zlorec
   :depends-on (#:restas #:closure-template #:postmodern 
-	       #:drakma #:cl-ppcre #:local-time #:parse-html)
+	       #:drakma #:cl-ppcre #:local-time #:parse-html
+	       #:lweb)
   :components ((:module "src"
 			:components ((:file "defmodule")
 				     (:file "xonix"
