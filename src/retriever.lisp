@@ -147,6 +147,15 @@
 					attrs))
 		     ,@on-tag)))))))
 
+(defmacro for-elements (elt (&rest destruct-tag-params) elts &key loop-control on-tag on-text)
+  `(loop
+      :for ,elt :in ,elts
+      ,@loop-control
+      :do
+      (destruct-tag ,destruct-tag-params ,elt
+		    :on-tag ,on-tag
+		    :on-text ,on-text)))
+
 (defun parse-post (id html)
   (let ((parent nil)
 	(header nil)
@@ -161,48 +170,36 @@
 	       ((let ((parent-id (match-element-id *div-regex* div-id)))
 		  (cond 
 		    ((and (not parent) parent-id)
-		     (loop 
-			:for elt :in body 
-			:until parent
-			:do
-			(destruct-tag ((:id span-id) :tag tag) elt
-			  :on-tag
-			  ((when (and (eq tag :span)
+		     (for-elements elt ((:id span-id) :tag tag) body :loop-control (:until parent)
+		        :on-tag
+			((when (and (eq tag :span)
 				    (eql (match-element-id *span-regex* span-id)
 					 id))
-			     (setf parent parent-id))))))
+			   (setf parent parent-id)))))
 		    ((and (not root)
 			  (equalp div-class "w"))
-		     (loop 
-			:for elt :in body
-			:until root
-			:do
-			(destruct-tag ((:id span-id) :tag tag) elt
-			  :on-tag
-			  ((let ((span-id (match-element-id *span-regex* span-id)))
-			    (if (and (eq tag :span)
-				     span-id)
-				(setf root span-id)))))))
+		     (for-elements elt ((:id span-id) :tag tag) body :loop-control (:until root)
+			:on-tag
+			((let ((span-id (match-element-id *span-regex* span-id)))
+			   (if (and (eq tag :span)
+				    span-id)
+			       (setf root span-id))))))
 		    ((and (not header) 
 			  (not author)
 			  (equalp div-align "center"))
-		     (loop 
-			:for elt :in body
-			:until (and header author)
-			:do
-			(destruct-tag ((:class elt-class) 
-				       :tag tag :body elt-body) elt
-			  :on-tag
-			  ((cond  
-			    ((eq tag :big)
-			     (setf header (car elt-body)))
-			    ((eq tag :b)
-			     (setf author (car elt-body))
-			     (setf unreg t))
-			    ((and (eq tag :a)
-				  (equalp elt-class "nn"))
-			     (setf author (car elt-body))
-			     (setf unreg nil)))))))
+		     (for-elements elt ((:class elt-class) :tag tag :body elt-body) body
+				   :loop-control (:until (and header author))
+			:on-tag
+			((cond  
+			   ((eq tag :big)
+			    (setf header (car elt-body)))
+			   ((eq tag :b)
+			    (setf author (car elt-body))
+			    (setf unreg t))
+			   ((and (eq tag :a)
+				 (equalp elt-class "nn"))
+			    (setf author (car elt-body))
+			    (setf unreg nil))))))
 		    ((and (not text) (equalp div-class "body"))
 		     (setf text body)))))))
 	   (process-span (span)
@@ -210,29 +207,28 @@
 	       :on-tag
 	       ((when (eql (match-element-id *span-regex* span-id)
 			   id)
-		  (loop 
-		     :for elt :in body
-		     :until date
-		     :do
-		     (destruct-tag (() :body date-string) elt
-		       :on-text
-		       ((let ((span-date (match-date date-string)))
-			  (if span-date
-			      (setf date span-date)))))))))))
+		  (for-elements elt (() :body date-string) body 
+				:loop-control (:until date)
+		      :on-text
+		      ((let ((span-date (match-date date-string)))
+			 (if span-date
+			     (setf date span-date))))))))))
       (parse-html html 
 		  :callback-only t
 		  :callbacks `((:div . ,#'process-div)
 			       (:span . ,#'process-span)))
-      (if header
-	  (make-instance 'message 
-			 :id id
-			 :author author
-			 :unreg unreg
-			 :root-id (or root 0)
-			 :parent-id (or parent 0)
-			 :date date
-			 :header (html-gen header)
-			 :text (html-gen text))))))
+      (when header
+	(if (and date author root)
+	    (make-instance 'message 
+		       :id id
+		       :author author
+		       :unreg unreg
+		       :root-id (or root 0)
+		       :parent-id (or parent 0)
+		       :date date
+		       :header (html-gen header)
+		       :text (html-gen text))
+	    (format t "Malformed message #~a~%" id))))))
 
 (defun retrieve-post (id)
   (let ((html (http-request (post-query id) 
