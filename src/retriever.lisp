@@ -260,3 +260,24 @@
 	     (insert-dao msg)
 	     (setf last-ok i))))
       last-ok)))
+
+(defun max-message-id ()
+  (with-connection *db-spec*
+    (query (:select (:coalesce (:max 'id) 0) :from 'message) :single)))
+
+(defun retrieve-loop (&key 
+		      (wait-on-timeout 300) 
+		      (wait-after-block wait-on-timeout) 
+		      (amount 10000))
+  (with-connection *db-spec*
+    (loop
+       (let ((old-max (max-message-id)))
+	 (handler-case (progn
+			 (bulk-retrieve (+ 1 old-max)
+					(+ amount old-max))
+			 (sleep wait-after-block))
+	   (usocket:timeout-error ()
+	     
+	     (format t "Timed out after message ~a~%"
+		     (max-message-id))
+	     (sleep wait-on-timeout)))))))
