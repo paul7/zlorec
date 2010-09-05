@@ -58,5 +58,8 @@
 	      :height *graph-height*))
       (list :error "bad parameters")))
 		      
-
-
+(restas:define-route retrieved ("zlorec")
+  (list :lastid (max-message-id)
+	:lastbad (max-message-id :class 'bad-message)
+	:msgnum (message-count)
+	:badnum (message-count :class 'bad-message)))

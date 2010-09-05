@@ -41,6 +41,16 @@
   (:keys id)
   (:metaclass dao-class))
 
+(defclass bad-message ()
+  ((id        :col-type integer
+	      :initarg :id
+	      :accessor bad-message-id)
+   (html      :col-type text
+	      :initarg :html
+	      :accessor bad-message-html))
+  (:keys id)
+  (:metaclass dao-class))
+
 (defparameter *post-query* "http://zlo.rt.mipt.ru/?read=~a")
 
 (defparameter *zlo-encoding* :windows-1251)
@@ -220,15 +230,17 @@
       (when header
 	(if (and date author root)
 	    (make-instance 'message 
-		       :id id
-		       :author author
-		       :unreg unreg
-		       :root-id (or root 0)
-		       :parent-id (or parent 0)
-		       :date date
-		       :header (html-gen header)
-		       :text (html-gen text))
-	    (format t "Malformed message #~a~%" id))))))
+			   :id id
+			   :author author
+			   :unreg unreg
+			   :root-id (or root 0)
+			   :parent-id (or parent 0)
+			   :date date
+			   :header (html-gen header)
+			   :text (html-gen text))
+	    (make-instance 'bad-message
+			   :id id
+			   :html html))))))
 
 (defun retrieve-post (id)
   (let ((html (http-request (post-query id) 
@@ -239,6 +251,7 @@
 
 (defun install ()
   (with-connection *db-spec*
+    (execute (dao-table-definition 'bad-message))
     (execute (dao-table-definition 'message))
     (execute (:create-index 'author-index :on :message 
 			    :fields :author))))
@@ -246,7 +259,8 @@
 (defun uninstall ()
   (with-connection *db-spec*
     (if (yes-or-no-p "This operation will purge all data. Proceed?")
-	(execute (:drop-table 'message)))
+	(execute (:drop-table 'message))
+	(execute (:drop-table 'bad-message)))
     (values)))
 
 (defun bulk-retrieve (from to)
@@ -261,9 +275,13 @@
 	     (setf last-ok i))))
       last-ok)))
 
-(defun max-message-id ()
+(defun max-message-id (&key (class 'message))
   (with-connection *db-spec*
-    (query (:select (:coalesce (:max 'id) 0) :from 'message) :single)))
+    (query (:select (:coalesce (:max 'id) 0) :from class) :single)))
+
+(defun message-count (&key (class 'message))
+  (with-connection *db-spec*
+    (query (:select (:count :*) :from class) :single)))
 
 (defun retrieve-loop (&key 
 		      (wait-on-timeout 300) 
@@ -272,12 +290,12 @@
   (with-connection *db-spec*
     (loop
        (let ((old-max (max-message-id)))
+	 (format t "starting retrieve at ~a~%" old-max)
 	 (handler-case (progn
 			 (bulk-retrieve (+ 1 old-max)
 					(+ amount old-max))
 			 (sleep wait-after-block))
 	   (usocket:timeout-error ()
-	     
 	     (format t "Timed out after message ~a~%"
 		     (max-message-id))
 	     (sleep wait-on-timeout)))))))
