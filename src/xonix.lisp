@@ -8,6 +8,12 @@
 
 (defparameter *xonix-encoding* :windows-1251)
 
+(defun normalize-timestamp (timestamp)
+  (format nil "~2,1,0,'0@a.~2,1,0,'0@a.~a"
+	  (timestamp-day timestamp)
+	  (timestamp-month timestamp)
+	  (timestamp-year timestamp)))
+
 (defun user-query (user)
   (format nil *user-query* 
 	  (hunchentoot:url-encode user)))
@@ -15,8 +21,8 @@
 (defun user-date-query (user range)
   (format nil *user-date-query* 
 	  (hunchentoot:url-encode user *xonix-encoding*)
-	  (hunchentoot:url-encode (getf range :from)) 
-	  (hunchentoot:url-encode (getf range :to))))
+	  (hunchentoot:url-encode (normalize-timestamp (getf range :from)))
+	  (hunchentoot:url-encode (normalize-timestamp (getf range :to)))))
 
 (defun normalize-xonix-output (response)
   (let ((numbers (nth-value 1 (scan-to-strings *message-number-regex* 
@@ -25,7 +31,7 @@
 	(nth-value 0 (parse-integer (regex-replace-all "," (elt numbers 0) "")))
 	0)))
 
-(defun user-post-number (user &key range)
+(defun user-post-number% (user &key range)
   (let ((query))
     (setf query (if range 
 		    (user-date-query user range)

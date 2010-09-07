@@ -72,7 +72,7 @@
     (if captured 
 	(destructuring-bind (day month year hour minute) 
 	    (mapcar #'parse-integer (coerce captured 'list))
-	  (simple-date:encode-timestamp year month day hour minute)))))
+	  (encode-timestamp 0 0 minute hour day month year)))))
 
 (defun html-open-tag (tag)
   (let ((tag (if (consp tag)
@@ -115,6 +115,8 @@
 
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
+  (set-local-time-cl-postgres-readers)
+  
   (defun group (source n)
     (if (zerop n) (error "zero length"))
     (labels ((rec (source acc)
