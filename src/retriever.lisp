@@ -295,7 +295,8 @@
 			 (bulk-retrieve (+ 1 old-max)
 					(+ amount old-max))
 			 (sleep wait-after-block))
-	   (usocket:timeout-error ()
-	     (format t "Timed out after message ~a~%"
-		     (max-message-id))
+	   (error (er)
+	     (format t "Problem after message ~a:~%~a~%"
+		     (max-message-id)
+		     er)
 	     (sleep wait-on-timeout)))))))
