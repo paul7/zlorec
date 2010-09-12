@@ -230,7 +230,7 @@
 		  :callbacks `((:div . ,#'process-div)
 			       (:span . ,#'process-span)))
       (when header
-	(if (and date author root)
+	(if (and date author root (atom author))
 	    (make-instance 'message 
 			   :id id
 			   :author author
