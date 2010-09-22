@@ -1,5 +1,5 @@
 (restas:define-module #:zlorec
-    (:use #:cl #:postmodern #:drakma #:cl-ppcre #:local-time #:parse-html)
+    (:use #:cl #:postmodern #:drakma #:cl-ppcre #:local-time #:parse-html #:iterate #:lweb)
   (:export))
 
 (in-package #:zlorec)

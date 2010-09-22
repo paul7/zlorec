@@ -41,6 +41,10 @@
   (:keys id)
   (:metaclass dao-class))
 
+(defmethod render-default ((object message))
+  (build-render-list :message (:id :text :header :visible :root-id :author) 
+		     object))
+
 (defclass bad-message ()
   ((id        :col-type integer
 	      :initarg :id
