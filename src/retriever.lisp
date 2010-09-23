@@ -253,7 +253,7 @@
 			    :external-format-in *zlo-encoding*)))
     (parse-post id html)))
 
-(defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost"))
+(defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 
 (defun install ()
   (with-connection *db-spec*

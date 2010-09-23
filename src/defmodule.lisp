@@ -30,8 +30,9 @@
 
 (restas:define-submodule #:lweb-viewer (#:lweb)
   (*default-render-method* (render-method-for-package ':lweb.subview))
-  (lweb::*db-spec* '("zlodb" "lisp" "lisp" "localhost"))
-  (lweb::*message-class* 'zlorec::message))
+  (lweb::*db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
+  (lweb::*message-class* 'zlorec::message)
+  (lweb::*index-limit* 50))
 
 (defun image-path (name)
   (merge-pathnames name 
