@@ -40,7 +40,7 @@
 		  {if $current == $id}
 		      {$header |noAutoescape}
 		  {else}
-		      <a href={$url}>{$header}</a>
+		      <a href={$url}>{$header |noAutoescape}</a>
 		  {/if}
 	      	  </span>
 	  </span>
