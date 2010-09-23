@@ -1,16 +1,7 @@
 (in-package #:zlorec)
 
 (setf *default-render-method*
-      #'(lambda (obj)
-	  (closure-template.standard:xhtml-strict-frame
-	   (list :title (getf obj :title)
-		 :body (zlorec.view:main-view 
-			(list 
-			 :impl (list :type (lisp-implementation-type)
-				     :version (lisp-implementation-version))
-			 :body (restas:render-object 
-				(find-package ':zlorec.view)
-				obj)))))))
+      (render-method-for-package ':zlorec.view))
 
 (restas:define-route main ("")
   (restas:redirect 'graph-form))

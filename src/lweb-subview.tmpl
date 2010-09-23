@@ -1,0 +1,128 @@
+{namespace lweb.subview}
+
+{template implementation-info}
+	  {$type} {$version}
+{/template}
+
+{template main-view}
+	  <div class="header">
+	       <a href={$login}>Login</a> <a href={$index}>Index</a>
+	  </div>
+
+	  {$body |noAutoescape}
+
+	  <div class="footer">
+	       Lweb @ 
+	       {call implementation-info data="$impl" /}
+	  </div>
+{/template}
+
+{template user-view-brief}
+	  <span class="userinfo">
+	       {$author}
+	  </span>
+{/template}
+
+{template moderatorial-action-view}
+	  <a href="{$route}">{$caption}</a>
+{/template}
+
+{template message-subtree-view}
+	  {for $i in range($level)}
+	       &nbsp
+	  {/for}
+	  <span class="folded">
+	  	  {call user-view-brief data="all" /}:
+		  <span class="header">
+		  {foreach $action in $moderatorial}
+                      {call moderatorial-action-view data="$action" /}
+		  {/foreach}
+		  {if $current == $id}
+		      {$header |noAutoescape}
+		  {else}
+		      <a href={$url}>{$header}</a>
+		  {/if}
+	      	  </span>
+	  </span>
+	  <div class="children">
+          {foreach $child in $children}
+	  	   {call message-subtree-view data="$child"}
+		   	 {param level: $level + 1 /}
+			 {param current: $current /}
+		   {/call}
+	  {/foreach}
+	  </div>
+{/template}
+
+{template message-tree-view}
+	  {call message-subtree-view data="all"}
+	  	{param level: 0 /}
+	  {/call}	  
+{/template}
+
+{template message-posting-form}
+	  <form action="{$posturl}" method="post">
+	  	<span class="user">
+		   {call user-view-brief data="all" /}:
+		</span><input type="text" name="header" /> 
+		<textarea rows="12" name="text" style="width: 100%"></textarea>
+		<input type="submit" name="send" value="Send" />
+	  </form>
+{/template}
+
+{template message-view}
+	  <div class="head">
+	       {call user-view-brief data="all" /}:
+	  	<span class="header">
+		      {$header |noAutoescape}
+	        </span>
+	  </div>
+	  <div class="text">
+	       {$text |noAutoescape}
+	  </div>
+	  <br />
+	  {call message-tree-view data="$thread"}
+	  	{param current: $id /}
+	  {/call}
+	  {if $writable}
+	      {call message-posting-form}
+	      	    {param user: $user /}
+		    {param posturl: $posturl /}
+	      {/call}
+	  {/if}
+{/template}
+
+{template message-list}
+	  {foreach $msg in $messages}
+	  	   {call message-tree-view data="$msg" /} <br />
+	  {/foreach}	
+	  {if $writable}
+	      {call message-posting-form}
+	      	    {param user: $user /}
+		    {param posturl: $posturl /}
+	      {/call}
+	  {/if}
+{/template}
+
+{template message-post}
+	  BAD MESSAGE: {$error}<br />
+	  <a href={$return}>Click here to return.</a>
+{/template}
+
+{template access-denied}
+	  <div>Access to the function you requested is denied.</div>
+	  {if $reason}
+	      <div>{$reason}</div>
+	  {/if}
+{/template}
+
+{template login-form}
+	  <form method="post">
+	  	<input type="text" name="uid" />
+		<input type="submit" name="login" value="Sign in" />
+	  </form>
+{/template}
+
+{template login-as-uid}
+	  1
+{/template}
