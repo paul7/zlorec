@@ -16,14 +16,16 @@
 
   (recompile-templates))
 
+(defparameter *impl-info* (list :type (lisp-implementation-type)
+				:version (lisp-implementation-version)))
+
 (defun render-method-for-package (pkg)
   #'(lambda (obj)
       (closure-template.standard:xhtml-strict-frame
        (list :title (getf obj :title)
 	     :body (zlorec.view:main-view 
 		    (list
-		     :impl (list :type (lisp-implementation-type)
-				 :version (lisp-implementation-version))
+		     :impl *impl-info*
 		     :body (restas:render-object 
 			    (find-package pkg)
 			    obj)))))))
