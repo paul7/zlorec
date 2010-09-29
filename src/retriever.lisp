@@ -281,13 +281,15 @@
 	     (setf last-ok i))))
       last-ok)))
 
-(defun max-message-id (&key (class 'message))
+(defun max-message-id (&key (classes '(message bad-message)))
   (with-connection *db-spec*
-    (query (:select (:coalesce (:max 'id) 0) :from class) :single)))
+    (iter (for class in classes)
+	  (maximize (query (:select (:coalesce (:max 'id) 0) :from class) :single)))))
 
-(defun message-count (&key (class 'message))
+(defun message-count (&key (classes '(message bad-message)))
   (with-connection *db-spec*
-    (query (:select (:count :*) :from class) :single)))
+    (iter (for class in classes)
+	  (sum (query (:select (:count 'id) :from class) :single)))))
 
 (defun retrieve-loop (&key 
 		      (wait-on-timeout 300) 

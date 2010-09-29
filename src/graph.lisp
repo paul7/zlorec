@@ -51,6 +51,6 @@
 		      
 (restas:define-route retrieved ("zlorec")
   (list :lastid (max-message-id)
-	:lastbad (max-message-id :class 'bad-message)
+	:lastbad (max-message-id :classes '(bad-message))
 	:msgnum (message-count)
-	:badnum (message-count :class 'bad-message)))
+	:badnum (message-count :classes '(bad-message))))
