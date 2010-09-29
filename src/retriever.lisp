@@ -56,17 +56,19 @@
   (:metaclass dao-class))
 
 (defparameter *post-query* "http://zlo.rt.mipt.ru/?read=~a")
+(defparameter *index-query* "http://zlo.rt.mipt.ru/")
 
 (defparameter *zlo-encoding* :windows-1251)
 
 (defparameter *div-regex* (create-scanner "^d(\\d+)$"))
 (defparameter *span-regex* (create-scanner "^m(\\d+)$"))
 (defparameter *time-regex* (create-scanner "(\\d+)/(\\d+)/(\\d+) (\\d+):(\\d+)"))
+(defparameter *href-regex* (create-scanner "^\\?read=(\\d+)$"))
 
 (defun post-query (id)
   (format nil *post-query* id))
 
-(defun match-element-id (regex id)
+(defun match-number (regex id)
   (let ((captured (nth-value 1 (scan-to-strings regex id))))
     (if captured
 	(parse-integer (elt captured 0)))))
@@ -183,20 +185,20 @@
     (flet ((process-div (div)
 	     (destruct-tag ((:id div-id :align div-align :class div-class) :body body) div
 	       :on-tag
-	       ((let ((parent-id (match-element-id *div-regex* div-id)))
+	       ((let ((parent-id (match-number *div-regex* div-id)))
 		  (cond 
 		    ((and (not parent) parent-id)
 		     (for-elements elt ((:id span-id) :tag tag) body :loop-control (:until parent)
 		        :on-tag
 			((when (and (eq tag :span)
-				    (eql (match-element-id *span-regex* span-id)
+				    (eql (match-number *span-regex* span-id)
 					 id))
 			   (setf parent parent-id)))))
 		    ((and (not root)
 			  (equalp div-class "w"))
 		     (for-elements elt ((:id span-id) :tag tag) body :loop-control (:until root)
 			:on-tag
-			((let ((span-id (match-element-id *span-regex* span-id)))
+			((let ((span-id (match-number *span-regex* span-id)))
 			   (if (and (eq tag :span)
 				    span-id)
 			       (setf root span-id))))))
@@ -221,7 +223,7 @@
 	   (process-span (span)
 	     (destruct-tag ((:id span-id) :body body) span
 	       :on-tag
-	       ((when (eql (match-element-id *span-regex* span-id)
+	       ((when (eql (match-number *span-regex* span-id)
 			   id)
 		  (for-elements elt (() :body date-string) body 
 				:loop-control (:until date)
@@ -252,6 +254,21 @@
   (let ((html (http-request (post-query id) 
 			    :external-format-in *zlo-encoding*)))
     (parse-post id html)))
+
+(defun find-last-id ()
+  (let ((html (http-request *index-query* 
+			    :external-format-in *zlo-encoding*))
+	(max-id 0))
+    (flet ((process-a (a)
+	     (destruct-tag ((:href href)) a
+                :on-tag
+		((let ((id (match-number *href-regex* href)))
+		   (if (and id (> id max-id))
+		       (setf max-id id)))))))
+      (parse-html html
+		  :callback-only t
+		  :callbacks `((:a . ,#'process-a)))
+      max-id)))
 
 (defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 
@@ -292,16 +309,19 @@
 	  (sum (query (:select (:count 'id) :from class) :single)))))
 
 (defun retrieve-loop (&key 
+		      (amount 1000)
 		      (wait-on-timeout 300) 
-		      (wait-after-block wait-on-timeout) 
-		      (amount 10000))
+		      (wait-after-block wait-on-timeout))
   (with-connection *db-spec*
     (loop
-       (let ((old-max (max-message-id)))
-	 (format t "starting retrieve at ~a~%" old-max)
+       (let* ((from (1+ (max-message-id)))
+	      (to (min (find-last-id)
+		       (+ amount from))))
 	 (handler-case (progn
-			 (bulk-retrieve (+ 1 old-max)
-					(+ amount old-max))
+			 (when (>= to from)
+			   (format t "starting retrieve: from ~a to ~a~%" 
+				   from to)
+			   (bulk-retrieve from to))
 			 (sleep wait-after-block))
 	   (error (er)
 	     (format t "Problem after message ~a:~%~a~%"
