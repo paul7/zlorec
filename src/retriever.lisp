@@ -270,8 +270,6 @@
 		  :callbacks `((:a . ,#'process-a)))
       max-id)))
 
-(defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
-
 (defun install ()
   (with-connection *db-spec*
     (execute (dao-table-definition 'bad-message))
@@ -309,9 +307,9 @@
 	  (sum (query (:select (:count 'id) :from class) :single)))))
 
 (defun retrieve-loop (&key 
-		      (amount 1000)
-		      (wait-on-timeout 300) 
-		      (wait-after-block wait-on-timeout))
+		      (amount *block-size*)
+		      (wait-on-timeout *wait-on-timeout*) 
+		      (wait-after-block *wait-after-block*))
   (with-connection *db-spec*
     (loop
        (let* ((from (1+ (max-message-id)))
