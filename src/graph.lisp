@@ -29,7 +29,8 @@
 
 (restas:define-route user-activity ("useract.svg/:user/:unit/:amount"
 				    :parse-vars (list :amount #'parse-integer
-						      :unit #'validate-unit)
+						      :unit #'validate-unit
+						      :user #'hunchentoot:url-decode)
 				    :render-method #'zlorec.view:user-activity
 				    :content-type "image/svg+xml")
   (if (and (plusp (length user))
