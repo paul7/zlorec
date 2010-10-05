@@ -135,44 +135,35 @@
 		      (cons source acc))))))
       (if source (rec source nil) nil))))
 
-(defmacro destruct-tag (((&rest attrs) &key tag body) elt &key on-tag on-text)
-  (let ((gtag (gensym))
-	(gbody (gensym))
-	(gplist (gensym))
-	(attrs (group attrs 2)))
-    `(if (atom ,elt)
-	 ,(if on-text
-	      `(let ((,gtag nil)
-		     (,gbody ,elt)
-		     (,gplist nil))
-		 (declare (ignorable ,gbody ,gtag ,gplist))
-		 (let ,(nconc (if body
-				  `((,body ,gbody))))
-		   ,@on-text)))
-	 ,(if on-tag
-	      `(destructuring-bind (,gtag &rest ,gbody) ,elt
-		 (declare (ignorable ,gbody))
-		 (destructuring-bind (,gtag &rest ,gplist) (if (consp ,gtag)
-							       ,gtag
-							       (list ,gtag))
-		   (declare (ignorable ,gtag ,gplist))
-		   (let ,(nconc (if tag
-				    `((,tag ,gtag)))
-				(if body
-				    `((,body ,gbody)))
-				(mapcan #'(lambda (attr)
-					    `((,(cadr attr) (getf ,gplist ,(car attr)))))
-					attrs))
-		     ,@on-tag)))))))
+(defmacro on-text (element (&key text) &body body)
+  (alexandria:with-gensyms (gelt)
+    `(let ((,gelt ,element))
+       (if (atom ,gelt)
+	   (let ,(if text
+		     `((,text ,gelt)))
+	     ,@body)))))
 
-(defmacro for-elements (elt (&rest destruct-tag-params) elts &key loop-control on-tag on-text)
-  `(loop
-      :for ,elt :in ,elts
-      ,@loop-control
-      :do
-      (destruct-tag ,destruct-tag-params ,elt
-		    :on-tag ,on-tag
-		    :on-text ,on-text)))
+(defmacro on-tag (element 
+		  (&key attrs tag inner)
+		  &body body)
+  (let ((attrs (group attrs 2)))
+    (alexandria:with-gensyms (gtag ginner gplist gelt)
+      `(let ((,gelt ,element))
+	 (unless (atom ,gelt)
+	   (destructuring-bind (,gtag &rest ,ginner) ,gelt
+	     (declare (ignorable ,ginner))
+	     (destructuring-bind (,gtag &rest ,gplist) (if (consp ,gtag)
+							   ,gtag
+							   (list ,gtag))
+	       (declare (ignorable ,gtag ,gplist))
+	       (let ,(nconc (if tag
+				`((,tag ,gtag)))
+			    (if inner
+				`((,inner ,ginner)))
+			    (mapcan #'(lambda (attr)
+					`((,(cadr attr) (getf ,gplist ,(car attr)))))
+				    attrs))
+		 ,@body))))))))
 
 (defun parse-post (id html)
   (let ((parent nil)
@@ -183,32 +174,36 @@
 	(date nil)
 	(unreg nil))
     (flet ((process-div (div)
-	     (destruct-tag ((:id div-id :align div-align :class div-class) :body body) div
-	       :on-tag
-	       ((let ((parent-id (match-number *div-regex* div-id)))
+	     (on-tag div (:attrs (:id div-id :align div-align :class div-class) :inner body)
+	       (let ((parent-id (match-number *div-regex* div-id)))
 		  (cond 
 		    ((and (not parent) parent-id)
-		     (for-elements elt ((:id span-id) :tag tag) body :loop-control (:until parent)
-		        :on-tag
-			((when (and (eq tag :span)
+		     (iter 
+		       (for elt in body)
+		       (until parent)
+		       (on-tag elt (:tag tag :attrs (:id span-id))
+			 (when (and (eq tag :span)
 				    (eql (match-number *span-regex* span-id)
 					 id))
 			   (setf parent parent-id)))))
 		    ((and (not root)
 			  (equalp div-class "w"))
-		     (for-elements elt ((:id span-id) :tag tag) body :loop-control (:until root)
-			:on-tag
-			((let ((span-id (match-number *span-regex* span-id)))
+		     (iter 
+		       (for elt in body)
+		       (until root)
+		       (on-tag elt (:tag tag :attrs (:id span-id))
+			 (let ((span-id (match-number *span-regex* span-id)))
 			   (if (and (eq tag :span)
 				    span-id)
 			       (setf root span-id))))))
 		    ((and (not header) 
 			  (not author)
 			  (equalp div-align "center"))
-		     (for-elements elt ((:class elt-class) :tag tag :body elt-body) body
-				   :loop-control (:until (and header author))
-			:on-tag
-			((cond  
+		     (iter
+		       (for elt in body)
+		       (until (and header author))
+		       (on-tag elt (:tag tag :attrs (:class elt-class) :inner elt-body) 
+			 (cond  
 			   ((eq tag :big)
 			    (setf header (car elt-body)))
 			   ((eq tag :b)
@@ -219,18 +214,18 @@
 			    (setf author (car elt-body))
 			    (setf unreg nil))))))
 		    ((and (not text) (equalp div-class "body"))
-		     (setf text body)))))))
+		     (setf text body))))))
 	   (process-span (span)
-	     (destruct-tag ((:id span-id) :body body) span
-	       :on-tag
-	       ((when (eql (match-number *span-regex* span-id)
-			   id)
-		  (for-elements elt (() :body date-string) body 
-				:loop-control (:until date)
-		      :on-text
-		      ((let ((span-date (match-date date-string)))
-			 (if span-date
-			     (setf date span-date))))))))))
+	     (on-tag span (:attrs (:id span-id) :inner body)
+	       (when (eql (match-number *span-regex* span-id)
+			  id)
+		 (iter 
+		   (for elt in body)
+		   (until date)
+		   (on-text elt (:text date-string)
+		     (let ((span-date (match-date date-string)))
+		       (if span-date
+			   (setf date span-date)))))))))
       (parse-html html 
 		  :callback-only t
 		  :callbacks `((:div . ,#'process-div)
@@ -260,11 +255,10 @@
 			    :external-format-in *zlo-encoding*))
 	(max-id 0))
     (flet ((process-a (a)
-	     (destruct-tag ((:href href)) a
-                :on-tag
-		((let ((id (match-number *href-regex* href)))
-		   (if (and id (> id max-id))
-		       (setf max-id id)))))))
+	     (on-tag a (:attrs (:href href))
+	       (let ((id (match-number *href-regex* href)))
+		 (if (and id (> id max-id))
+		     (setf max-id id))))))
       (parse-html html
 		  :callback-only t
 		  :callbacks `((:a . ,#'process-a)))
@@ -287,42 +281,43 @@
 (defun bulk-retrieve (from to)
   (with-connection *db-spec*
     (let ((last-ok nil))
-      (loop
-	 :for i :from from :to to
-	 :do
-	 (let ((msg (retrieve-post i)))
-	   (when msg
-	     (insert-dao msg)
-	     (setf last-ok i))))
+      (iter
+	(for i from from to to)
+	(let ((msg (retrieve-post i)))
+	  (when msg
+	    (insert-dao msg)
+	    (setf last-ok i))))
       last-ok)))
 
 (defun max-message-id (&key (classes '(message bad-message)))
   (with-connection *db-spec*
-    (iter (for class in classes)
-	  (maximize (query (:select (:coalesce (:max 'id) 0) :from class) :single)))))
+    (iter 
+      (for class in classes)
+      (maximize (query (:select (:coalesce (:max 'id) 0) :from class) :single)))))
 
 (defun message-count (&key (classes '(message bad-message)))
   (with-connection *db-spec*
-    (iter (for class in classes)
-	  (sum (query (:select (:count 'id) :from class) :single)))))
+    (iter 
+      (for class in classes)
+      (sum (query (:select (:count 'id) :from class) :single)))))
 
 (defun retrieve-loop (&key 
 		      (amount *block-size*)
 		      (wait-on-timeout *wait-on-timeout*) 
 		      (wait-after-block *wait-after-block*))
   (with-connection *db-spec*
-    (loop
-       (let* ((from (1+ (max-message-id)))
-	      (to (min (find-last-id)
-		       (1- (+ amount from)))))
-	 (handler-case (progn
-			 (when (>= to from)
-			   (format t "starting retrieve: from ~a to ~a~%" 
-				   from to)
-			   (bulk-retrieve from to))
-			 (sleep wait-after-block))
-	   (error (er)
-	     (format t "Problem after message ~a:~%~a~%"
-		     (max-message-id)
-		     er)
-	     (sleep wait-on-timeout)))))))
+    (iter
+      (let* ((from (1+ (max-message-id)))
+	     (to (min (find-last-id)
+		      (1- (+ amount from)))))
+	(handler-case (progn
+			(when (>= to from)
+			  (format t "starting retrieve: from ~a to ~a~%" 
+				  from to)
+			  (bulk-retrieve from to))
+			(sleep wait-after-block))
+	  (error (er)
+	    (format t "Problem after message ~a:~%~a~%"
+		    (max-message-id)
+		    er)
+	    (sleep wait-on-timeout)))))))
