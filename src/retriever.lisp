@@ -136,7 +136,7 @@
       (if source (rec source nil) nil))))
 
 (defmacro on-text (element (&key text) &body body)
-  (alexandria:with-gensyms (gelt)
+  (with-gensyms (gelt)
     `(let ((,gelt ,element))
        (if (atom ,gelt)
 	   (let ,(if text
@@ -147,7 +147,7 @@
 		  (&key attrs tag inner)
 		  &body body)
   (let ((attrs (group attrs 2)))
-    (alexandria:with-gensyms (gtag ginner gplist gelt)
+    (with-gensyms (gtag ginner gplist gelt)
       `(let ((,gelt ,element))
 	 (unless (atom ,gelt)
 	   (destructuring-bind (,gtag &rest ,ginner) ,gelt

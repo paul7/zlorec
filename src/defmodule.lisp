@@ -1,5 +1,5 @@
 (restas:define-module #:zlorec
-    (:use #:cl #:postmodern #:drakma #:cl-ppcre #:local-time #:parse-html #:iterate #:lweb)
+    (:use #:cl #:postmodern #:drakma #:cl-ppcre #:local-time #:parse-html #:iterate #:lweb #:alexandria)
   (:export #:retrieve-loop
 	   #:*wait-on-timeout*
 	   #:*wait-after-block*
