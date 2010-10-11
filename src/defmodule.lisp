@@ -39,7 +39,7 @@
 (defparameter *wait-after-block* 20)
 (defparameter *block-size* 100)
 
-(restas:define-submodule #:lweb-viewer (#:lweb)
+(restas:mount-submodule #:lweb-viewer (#:lweb)
   (*default-render-method* (render-method-for-package ':lweb.subview))
   (lweb::*db-spec* *db-spec*)
   (lweb:*message-class* 'message)
@@ -57,7 +57,7 @@
 
 (in-package #:zlorec-daemon)
 
-(restas:define-submodule #:zlorec (#:zlorec))
+(restas:mount-submodule #:zlorec (#:zlorec))
 
 (defvar *daemon-thread* nil)
 (defparameter *daemon-thread-name* "Retrieve thread")
