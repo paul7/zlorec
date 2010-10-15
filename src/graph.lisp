@@ -46,15 +46,17 @@
 	  :width  (* amount bar-width)
 	  :height *graph-height*)))
 
-(restas:define-route user-activity ("useract.svg/:user/:unit/:amount"
-				    :parse-vars (list :amount #'parse-integer
-						      :unit   #'validate-unit
-						      :user   #'hunchentoot:url-decode)
-				    :render-method #'zlorec.view:svg-bar-graph
-				    :content-type "image/svg+xml")
+(pm:define-memoized-route user-activity ("useract.svg/:user/:unit/:amount"
+					 :parse-vars (list :amount #'parse-integer
+							   :unit   #'validate-unit
+							   :user   #'hunchentoot:url-decode)
+					 :render-method #'zlorec.view:svg-bar-graph
+					 :content-type "image/svg+xml")
   (if (and (plusp (length user))
 	   (plusp amount))
-      (render-svg-bar-graph (get-user-activity user :unit unit :amount amount))
+      (values 
+       (render-svg-bar-graph (get-user-activity user :unit unit :amount amount))
+       '(1 :hour))
       (list :error "bad parameters")))
 		      
 (restas:define-route retrieved ("zlorec")

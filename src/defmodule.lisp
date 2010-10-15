@@ -8,6 +8,11 @@
 
 (in-package #:zlorec)
 
+(defparameter *memo-storage* (pm:make-hashtable-storage))
+
+(restas:define-initialization (context)
+  (restas:context-add-variable context 'pm:*storage* *memo-storage*))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun recompile-templates ()
     (closure-template:compile-template :common-lisp-backend
