@@ -2,10 +2,10 @@
 
 (defparameter *user* "paul7")
 
-(defparameter *swankport* 9000)
+(defparameter *swankport* 4005)
 
 (defparameter *asdf-central-registry*
- '(#P"/usr/share/common-lisp/systems/" #P"/home/paul7/clbuild-archimag/systems/"))
+ '(#P"/usr/share/common-lisp/systems/" #P"/home/paul7/lisp-local/clbuild-archimag/systems/"))
 
 (defparameter *asdf-load-systems* '(#:zlorec))
 

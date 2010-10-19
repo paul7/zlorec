@@ -20,6 +20,7 @@
 
 (defun validate-unit (unit)
   (cond 
+    ((equalp unit "hour")  :hour)
     ((equalp unit "day")   :day)
     ((equalp unit "month") :month)
     ((equalp unit "year")  :year)))
@@ -30,7 +31,9 @@
 (defparameter *graph-border-part* 1/10)
 
 (defun scale-unit (max-value)
-  (let ((ten-power (max 1 (expt 10 
+  (let* ((max-value (unless (plusp max-value)
+		      1))
+	 (ten-power (max 1 (expt 10 
 				(floor (log (/ max-value *graph-sections*) 10))))))
     (* ten-power 
        (ceiling (/ max-value *graph-sections* ten-power)))))
