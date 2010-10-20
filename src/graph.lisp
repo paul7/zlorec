@@ -31,8 +31,9 @@
 (defparameter *graph-border-part* 1/10)
 
 (defun scale-unit (max-value)
-  (let* ((max-value (unless (plusp max-value)
-		      1))
+  (let* ((max-value (if (plusp max-value)
+			max-value 
+			1))
 	 (ten-power (max 1 (expt 10 
 				(floor (log (/ max-value *graph-sections*) 10))))))
     (* ten-power 
@@ -70,13 +71,13 @@
 			(list :mark mark
 			      :y    (- *graph-height* border-height (* scale mark))))))))
     (print subscripts)
-    (list :values  scaled
-	  :marks   marks
-	  :bwidth  border-width
-	  :bheight border-height
-	  :width   (+ (* 2 border-width)  (* amount bar-width))
-	  :height  *graph-height*
-	  :title   title)))
+    (list :values   scaled
+	  :marks    marks
+	  :bwidth   border-width
+	  :bheight  border-height
+	  :width    (+ (* 2 border-width)  (* amount bar-width))
+	  :height   *graph-height*
+	  :title    title)))
 
 (pm:define-memoized-route user-activity ("useract.svg/:user/:unit/:amount"
 					 :parse-vars (list :amount #'parse-integer
@@ -88,10 +89,18 @@
 	   (plusp amount))
       (values 
        (render-svg-bar-graph (get-user-activity user :unit unit :amount amount) 
-			     :title      user
+			     :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
 			     :subscripts (iota amount :start (- amount))) 
-       '(1 :sec))
+       '(1 :hour))
       (list :error "bad parameters")))
+
+(pm:define-memoized-route board-activity ("pulse.svg"
+					  :render-method #'zlorec.view:svg-bar-graph
+					  :content-type "image/svg+xml")
+  (values
+   (render-svg-bar-graph (get-total-activity)
+			 :title "Пульс борды")
+   '(1 :hour)))
 
 (restas:define-route retrieved ("zlorec")
   (list :lastid  (max-message-id)

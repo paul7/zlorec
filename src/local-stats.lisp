@@ -13,6 +13,13 @@
 		     (:< :date '$3)))
   :single)
 
+(defprepared db-total-date-query
+    (:select (:count :*) :from 'message
+	     :where (:and
+		     (:>= :date '$1)
+		     (:< :date '$2)))
+  :single)
+
 (defun user-post-number (user &key range)
   (with-connection *db-spec*
     (if range
@@ -20,3 +27,9 @@
 			    (getf range :from)
 			    (getf range :to))
 	(db-user-query user))))
+
+(defun total-post-number (range)
+  (with-connection *db-spec* 
+    (db-total-date-query (getf range :from)
+			 (getf range :to))))
+    
