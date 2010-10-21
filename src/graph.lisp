@@ -89,7 +89,7 @@
 		    (:hour     24)
 		    (:day      31)
 		    (:month    12)
-		    (:year     10)
+		    (:year     12)
 		    (otherwise 0)))))
 
 (pm:define-memoized-route user-activity ("useract.svg/:user/:unit/:amount"
