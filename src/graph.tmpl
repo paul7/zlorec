@@ -64,7 +64,11 @@
      xmlns:xlink = "http://www.w3.org/1999/xlink"
      xmlns:ev = "http://www.w3.org/2001/xml-events"
      height = "{$height}"  width = "{$width}">
-{if not $error}	     
+{if $error}	     
+    <text x="20" y="40" font-size="24">
+    	  {$error}
+    </text>
+{else}
      <rect x="{$bwidth}" y="{$bheight}" 
      	  width="{$width - 2 * $bwidth}" 
 	  height="{$height - 2 * $bheight}" 

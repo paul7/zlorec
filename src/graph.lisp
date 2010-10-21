@@ -29,6 +29,7 @@
 (defparameter *graph-width* 500)
 (defparameter *graph-sections* 5)
 (defparameter *graph-border-part* 1/10)
+(defparameter *graph-max-subscripts* 12)
 
 (defun scale-unit (max-value)
   (let* ((max-value (if (plusp max-value)
@@ -53,6 +54,7 @@
 	 (subscripts (append subscripts (make-list (max 0 (- (length values)
 							     (length subscripts)))
 						   :initial-element "")))
+	 (sub-mod (ceiling (/ (length subscripts) *graph-max-subscripts*)))
 	 (scaled (iter 
 		   (for offset from 0)
 		   (for val in values)
@@ -62,7 +64,9 @@
 			     :x         bar-width
 			     :offset    (+ border-width (* offset bar-width))
 			     :bottom    (+ border-height height)
-			     :subscript sub))
+			     :subscript (if (zerop (mod offset sub-mod))
+					    sub
+					    "")))
 			 values))
 	 (marks (iter 
 		  (for mark from 1 below *graph-sections*)
@@ -79,27 +83,39 @@
 	  :height   *graph-height*
 	  :title    title)))
 
+(defun good-amount-p (unit amount)
+  (and (plusp amount)
+       (<= amount (case unit
+		    (:hour     24)
+		    (:day      31)
+		    (:month    12)
+		    (:year     10)
+		    (otherwise 0)))))
+
 (pm:define-memoized-route user-activity ("useract.svg/:user/:unit/:amount"
 					 :parse-vars (list :amount #'parse-integer
 							   :unit   #'validate-unit
 							   :user   #'hunchentoot:url-decode)
 					 :render-method #'zlorec.view:svg-bar-graph
 					 :content-type "image/svg+xml")
-  (if (and (plusp (length user))
-	   (plusp amount))
-      (values 
-       (render-svg-bar-graph (get-user-activity user :unit unit :amount amount) 
-			     :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
-			     :subscripts (iota amount :start (- amount))) 
-       '(1 :hour))
-      (list :error "bad parameters")))
+  (cond
+    ((not (plusp (length user)))
+     (list :error "bad username"))
+    ((not (good-amount-p unit amount))
+     (list :error "bad period"))
+    (t (values 
+	(render-svg-bar-graph (get-user-activity user :unit unit :amount amount) 
+			      :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
+			      :subscripts (iota amount :start (- amount))) 
+	'(1 :hour)))))
 
 (pm:define-memoized-route board-activity ("pulse.svg"
 					  :render-method #'zlorec.view:svg-bar-graph
 					  :content-type "image/svg+xml")
   (values
    (render-svg-bar-graph (get-total-activity)
-			 :title "Пульс борды")
+			 :title      "Board activity (24 hours)"
+			 :subscripts (iota 24 :start -24))
    '(1 :hour)))
 
 (restas:define-route retrieved ("zlorec")
