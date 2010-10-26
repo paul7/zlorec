@@ -48,7 +48,7 @@
   (*default-render-method* (render-method-for-package ':lweb.subview))
   (lweb::*db-spec* *db-spec*)
   (lweb:*message-class* 'message)
-  (lweb:*index-limit* 50)
+  (lweb:*index-limit* 20)
   (lweb:*reverse-order* t))
 
 (defun image-path (name)
