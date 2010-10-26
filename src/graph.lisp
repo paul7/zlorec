@@ -86,7 +86,6 @@
 		      (let ((mark (* scale-unit mark)))
 			(list :mark mark
 			      :y    (- *graph-height* border-height (* scale mark))))))))
-    (print subscripts)
     (list :values   scaled
 	  :marks    marks
 	  :bwidth   border-width
