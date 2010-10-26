@@ -33,7 +33,7 @@
 			     (:day   ,#'timestamp-day)
 			     (:hour  ,#'timestamp-hour)))
 
-(defun user-post-number-around% (&key user date unit)
+(defun user-post-number-around (&key user date unit)
   (let ((flag nil))
     (flet ((insignificant (cur-unit)
 	     (prog1
@@ -58,25 +58,6 @@
 					       (timestamp-hour date)))))
 	       :single)))))
 			    
-(defun user-post-number-around (&key user date unit)
-  (let* ((conds (if user
-		    (list (format nil "author = '~a'" user))))
-	 (conds (append conds 
-			(iter 
-			  (for (each-unit unit-func) in *date-units*)
-			  (for p-unit previous each-unit)
-			  (until (eq p-unit unit))
-			  (collect (format nil "date_part('~a', date) = ~a"
-					   each-unit
-					   (funcall unit-func date))))))
-	 (query (format nil "
-select count(*) from message
-where ~{~a~^ and ~}
-"
-			conds)))
-    (with-connection *db-spec* 
-      (query query :single))))
-
 (defun total-post-number (range)
   (with-connection *db-spec* 
     (db-total-date-query (getf range :from)
