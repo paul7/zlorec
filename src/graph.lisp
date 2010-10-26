@@ -12,12 +12,13 @@
 (restas:define-route graph ("graph"
 			    :method :post
 			    :requirement #'(lambda () (hunchentoot:post-parameter "send")))
-  (list :graph (restas:genurl 'user-activity 
+  (let ((graph (restas:genurl 'user-activity 
 			      :user     (hunchentoot:post-parameter "user")
 			      :unit     (hunchentoot:post-parameter "unit")
 			      :amount   (hunchentoot:post-parameter "amount")
-			      :typefunc (hunchentoot:post-parameter "type"))
-	:return (restas:genurl 'graph-form)))
+			      :typefunc (hunchentoot:post-parameter "type"))))
+    (list :graph graph
+	  :return (restas:genurl 'graph-form))))
 
 (defun validate-unit (unit)
   (cond 

@@ -71,6 +71,8 @@
 {/template}
 
 {template message-view}
+	  <a href="{$index}">Index</a>
+	  <a href="{$around}">Around this message</a>
 	  <div class="head">
 	       {call user-view-brief data="all" /}:
 	  	<span class="header">
@@ -90,6 +92,10 @@
 		    {param posturl: $posturl /}
 	      {/call}
 	  {/if}
+{/template}
+
+{template message-list-around}
+	  {call message-list data="all" /}
 {/template}
 
 {template message-list}

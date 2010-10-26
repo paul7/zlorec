@@ -35,11 +35,9 @@
 {/template}
 
 {template graph}
-	  <object data="{$graph}"></object>
-	  {foreach $item in $values}
-	  	   <div>{$item}</div>
-	  {/foreach}
-	  <a href="{$return}">Return</a>
+	  <div><object data="{$graph}"></object></div>
+	  <div><a href="{$graph}">Direct link</a></div>
+	  <div><a href="{$return}">Return</a></div>
 {/template}
 
 {template svg-bar}
