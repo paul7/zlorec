@@ -104,10 +104,7 @@
     ((not (good-amount-p unit amount))
      (list :error "bad period"))
     (t (values 
-	(render-svg-bar-graph (get-user-activity-calendar 
-			       :user user
-			       :unit unit
-			       :amount amount) 
+	(render-svg-bar-graph (get-user-activity user :unit unit :amount amount) 
 			      :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
 			      :subscripts (iota amount :start (- amount))) 
 	'(1 :hour)))))
