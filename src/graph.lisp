@@ -13,9 +13,10 @@
 			    :method :post
 			    :requirement #'(lambda () (hunchentoot:post-parameter "send")))
   (list :graph (restas:genurl 'user-activity 
-			      :user   (hunchentoot:post-parameter "user")
-			      :unit   (hunchentoot:post-parameter "unit")
-			      :amount (hunchentoot:post-parameter "amount"))
+			      :user     (hunchentoot:post-parameter "user")
+			      :unit     (hunchentoot:post-parameter "unit")
+			      :amount   (hunchentoot:post-parameter "amount")
+			      :typefunc (hunchentoot:post-parameter "type"))
 	:return (restas:genurl 'graph-form)))
 
 (defun validate-unit (unit)
@@ -24,6 +25,16 @@
     ((equalp unit "day")   :day)
     ((equalp unit "month") :month)
     ((equalp unit "year")  :year)))
+
+(defun validate-type-user (type)
+  (cond 
+    ((equalp type "cal") #'get-user-activity-calendar)
+    ((equalp type "nat") #'get-user-activity)))
+
+(defun validate-type-total (type)
+  (cond 
+    ((equalp type "cal") #'get-total-activity-calendar)
+    ((equalp type "nat") #'get-total-activity)))
 
 (defparameter *graph-height* 500)
 (defparameter *graph-width* 500)
@@ -92,10 +103,18 @@
 		    (:year     12)
 		    (otherwise 0)))))
 
-(pm:define-memoized-route user-activity ("useract.svg/:user/:unit/:amount"
-					 :parse-vars (list :amount #'parse-integer
-							   :unit   #'validate-unit
-							   :user   #'hunchentoot:url-decode)
+(defun expiration-time (unit)
+  (ecase unit
+    (:year   '(1  :month))
+    (:month  '(10 :day))
+    (:day    '(1  :hour))
+    (:hour   '(1  :hour))))
+
+(pm:define-memoized-route user-activity ("useract.svg/:user/:unit/:amount/:typefunc"
+					 :parse-vars (list :amount   #'parse-integer
+							   :unit     #'validate-unit
+							   :user     #'hunchentoot:url-decode
+							   :typefunc #'validate-type-user)
 					 :render-method #'zlorec.view:svg-bar-graph
 					 :content-type "image/svg+xml")
   (cond
@@ -104,19 +123,22 @@
     ((not (good-amount-p unit amount))
      (list :error "bad period"))
     (t (values 
-	(render-svg-bar-graph (get-user-activity user :unit unit :amount amount) 
+	(render-svg-bar-graph (funcall typefunc user 
+						:unit unit 
+						:amount amount) 
 			      :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
 			      :subscripts (iota amount :start (- amount))) 
-	'(1 :hour)))))
+	(expiration-time unit)))))
 
-(pm:define-memoized-route board-activity ("pulse.svg"
+(pm:define-memoized-route board-activity ("pulse.svg/:typefunc"
+					  :parse-vars (list :typefunc #'validate-type-total)
 					  :render-method #'zlorec.view:svg-bar-graph
-					  :content-type "image/svg+xml")
+					  :content-type  "image/svg+xml")
   (values
-   (render-svg-bar-graph (get-total-activity)
+   (render-svg-bar-graph (funcall typefunc)
 			 :title      "Board activity (24 hours)"
 			 :subscripts (iota 24 :start -24))
-   '(1 :hour)))
+   (expiration-time :hour)))
 
 (restas:define-route retrieved ("zlorec")
   (list :lastid  (max-message-id)
