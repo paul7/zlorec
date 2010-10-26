@@ -63,7 +63,7 @@
 (defparameter *div-regex* (create-scanner "^d(\\d+)$"))
 (defparameter *span-regex* (create-scanner "^m(\\d+)$"))
 (defparameter *time-regex* (create-scanner "(\\d+)/(\\d+)/(\\d+) (\\d+):(\\d+)"))
-(defparameter *href-regex* (create-scanner "^\\?read=(\\d+)$"))
+(defparameter *last-id-regex* (create-scanner "current_nm=(\\d+);"))
 
 (defun post-query (id)
   (format nil *post-query* id))
@@ -251,18 +251,10 @@
     (parse-post id html)))
 
 (defun find-last-id ()
-  (let ((html (http-request *index-query* 
-			    :external-format-in *zlo-encoding*))
-	(max-id 0))
-    (flet ((process-a (a)
-	     (on-tag a (:attrs (:href href))
-	       (let ((id (match-number *href-regex* href)))
-		 (if (and id (> id max-id))
-		     (setf max-id id))))))
-      (parse-html html
-		  :callback-only t
-		  :callbacks `((:a . ,#'process-a)))
-      max-id)))
+  (let* ((html (http-request *index-query* 
+			     :external-format-in *zlo-encoding*))
+	 (max-id (match-number *last-id-regex* html)))
+    (or max-id 0)))
 
 (defun install ()
   (with-connection *db-spec*
