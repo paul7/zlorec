@@ -21,7 +21,7 @@
     (:year  :month)
     (:month :day)
     (:day   :hour)
-    (:hour  :min)))
+    (:hour  :minute)))
 
 (defun get-total-activity-calendar (&key (now (now)) (unit :hour) (amount 24))
   (get-total-activity :now (timestamp-maximize-part now (timestamp-next-unit unit))

@@ -8,7 +8,8 @@
 
 (in-package #:zlorec)
 
-(defparameter *memo-storage* (pm:make-hashtable-storage))
+(defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
+(defparameter *memo-storage* (pm:make-db-storage *db-spec*))
 
 (restas:define-initialization (context)
   (restas:context-add-variable context 'pm:*storage* *memo-storage*))
@@ -39,7 +40,6 @@
 			    (find-package pkg)
 			    obj)))))))
 
-(defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 (defparameter *wait-on-timeout* 60)
 (defparameter *wait-after-block* 20)
 (defparameter *block-size* 100)
