@@ -43,7 +43,7 @@
 {template svg-bar}
      <rect x="{$offset}" y="{$bottom - $y}" height="{$y}" width="{$x}"
      	   fill="gray" stroke="black" />
-     <text x="{$offset + ($x / 5.0)}" y="{$bottom + 20}" font-size="14">
+     <text x="{$offset + $x / 5.0}" y="{$bottom + 20}" font-size="14">
      	   {$subscript}
      </text>
 {/template}
@@ -70,8 +70,8 @@
     </text>
 {else}
      <rect x="{$bwidth}" y="{$bheight}" 
-     	  width="{$width - (2 * $bwidth)}" 
-	  height="{$height - (2 * $bheight)}" 
+     	  width="{$width - 2 * $bwidth}" 
+	  height="{$height - 2 * $bheight}" 
           fill="none" stroke="black" stroke-width="5px" stroke-opacity="0.5"/>
      {foreach $val in $values}
      	      {call svg-bar data="$val" /}
