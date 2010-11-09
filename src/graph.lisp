@@ -122,23 +122,26 @@
      (list :error "bad username"))
     ((not (good-amount-p unit amount))
      (list :error "bad period"))
-    (t (values 
-	(render-svg-bar-graph (funcall typefunc :user user 
-						:unit unit 
-						:amount amount) 
-			      :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
-			      :subscripts (iota amount :start (- amount))) 
-	(expiration-time unit)))))
+    (t (multiple-value-bind (values subscripts) (funcall typefunc 
+							 :user user 
+							 :unit unit 
+							 :amount amount)
+	 (values 
+	  (render-svg-bar-graph values
+				:title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
+				:subscripts subscripts)
+	  (expiration-time unit))))))
 
 (pm:define-memoized-route board-activity ("pulse.svg/:typefunc"
 					  :parse-vars (list :typefunc #'validate-type-total)
 					  :render-method #'zlorec.view:svg-bar-graph
 					  :content-type  "image/svg+xml")
-  (values
-   (render-svg-bar-graph (funcall typefunc)
-			 :title      "Board activity (24 hours)"
-			 :subscripts (iota 24 :start -24))
-   (expiration-time :hour)))
+  (multiple-value-bind (values subscripts) (funcall typefunc :unit :hour :amount 24)
+    (values
+     (render-svg-bar-graph values
+			   :title      "Board activity (24 hours)"
+			   :subscripts subscripts)
+     (expiration-time :hour))))
 
 (restas:define-route retrieved ("zlorec")
   (list :lastid  (max-message-id)
