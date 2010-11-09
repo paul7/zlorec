@@ -123,7 +123,7 @@
     ((not (good-amount-p unit amount))
      (list :error "bad period"))
     (t (values 
-	(render-svg-bar-graph (funcall typefunc user 
+	(render-svg-bar-graph (funcall typefunc :user user 
 						:unit unit 
 						:amount amount) 
 			      :title      (format nil "~a (~a ~(~a~:p~))" user amount unit)
