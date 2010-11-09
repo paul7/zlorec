@@ -21,15 +21,13 @@
   :single)
 
 (defun user-post-number (user &key range)
-  (with-connection *db-spec*
-    (if range
-	(db-user-date-query user
-			    (getf range :from)
-			    (getf range :to))
-	(db-user-query user))))
+  (if range
+      (db-user-date-query user
+			  (getf range :from)
+			  (getf range :to))
+      (db-user-query user)))
 
 (defun total-post-number (range)
-  (with-connection *db-spec* 
-    (db-total-date-query (getf range :from)
-			 (getf range :to))))
+  (db-total-date-query (getf range :from)
+		       (getf range :to)))
     
