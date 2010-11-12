@@ -205,7 +205,7 @@
 		       (on-tag elt (:tag tag :attrs (:class elt-class) :inner elt-body) 
 			 (cond  
 			   ((eq tag :big)
-			    (setf header (car elt-body)))
+			    (setf header (list (car elt-body))))
 			   ((eq tag :b)
 			    (setf author (car elt-body))
 			    (setf unreg t))
