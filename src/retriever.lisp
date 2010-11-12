@@ -313,3 +313,12 @@
 		    (max-message-id)
 		    er)
 	    (sleep wait-on-timeout)))))))
+
+(defun fix-header-problem ()
+  (with-connection *db-spec* 
+    (let ((ids (query "select id from message where header like '<A%'" :column)))
+      (iter (for id in ids)
+	    (print id)
+	    (query (:delete-from 'message :where (:= 'id id)))
+	    (bulk-retrieve id id)))))
+		   
