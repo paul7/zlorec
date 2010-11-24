@@ -116,10 +116,7 @@
 							   :user     #'hunchentoot:url-decode
 							   :typefunc #'validate-type-user)
 					 :render-method #'zlorec.view:svg-bar-graph
-					 :headers (list :content-disposition
-							"attachment; filename=useract.svg"
-							:content-type 
-							"image/svg+xml"))
+					 :content-type "image/svg+xml")
   (cond
     ((not (plusp (length user)))
      (list :error "bad username"))
@@ -138,10 +135,7 @@
 (pm:define-memoized-route board-activity ("pulse.svg/:typefunc"
 					  :parse-vars (list :typefunc #'validate-type-total)
 					  :render-method #'zlorec.view:svg-bar-graph
-					  :headers (list :content-disposition
-							 "attachment; filename=pulse.svg"
-							 :content-type
-							 "image/svg+xml"))
+					  :content-type  "image/svg+xml")
   (multiple-value-bind (values subscripts) (funcall typefunc :unit :hour :amount 24)
     (values
      (render-svg-bar-graph values
