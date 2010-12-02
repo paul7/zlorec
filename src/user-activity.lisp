@@ -8,6 +8,23 @@
     (:hour  (timestamp-hour timestamp))
     (:min   (timestamp-minute timestamp))))
 
+(defparameter *start-year* 
+  (with-connection *db-spec* 
+    (timestamp-year (earliest-post))))
+
+(defun unit-range (unit)
+  (values
+   (ecase unit
+     (:year  *start-year*)
+     (:month 1)
+     (:day   1)
+     (:hour  0))
+   (ecase unit
+     (:year  (timestamp-year (now)))
+     (:month 12)
+     (:day   31)
+     (:hour  23))))
+
 (defmacro define-activity (name (&rest args) &body body)
   `(defun ,name (&key (now (now)) unit amount ,@args)
      (with-connection *db-spec*
@@ -46,3 +63,22 @@
 		     :now (timestamp-maximize-part now (timestamp-next-unit unit))
 		     :unit unit
 		     :amount amount))
+
+
+(defun get-user-unit-activity (user unit)
+  (multiple-value-bind (start end) (unit-range unit)
+    (with-connection *db-spec* 
+      (iter 
+	(for value from start to end)
+	(collect (user-unit-post-number user unit value) into numbers)
+	(collect value into labels)
+	(finally (return (values numbers labels)))))))
+
+(defun get-total-unit-activity (unit)
+  (multiple-value-bind (start end) (unit-range unit)
+    (with-connection *db-spec* 
+      (iter 
+	(for value from start to end)
+	(collect (total-unit-post-number unit value) into numbers)
+	(collect value into labels)
+	(finally (return (values numbers labels)))))))

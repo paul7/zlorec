@@ -27,6 +27,11 @@
     ((equalp unit "month") :month)
     ((equalp unit "year")  :year)))
 
+(defun validate-small-unit (unit)
+  (cond 
+    ((equalp unit "hour")  :hour)
+    ((equalp unit "day")   :day)))
+
 (defun validate-type-user (type)
   (cond 
     ((equalp type "cal") #'get-user-activity-calendar)
@@ -143,6 +148,31 @@
 			   :subscripts subscripts)
      (expiration-time :hour))))
 
+(pm:define-memoized-route user-unit-activity ("userpulse.svg/:user/:unit"
+					      :parse-vars (list :unit     #'validate-small-unit
+								:user     #'hunchentoot:url-decode)
+					      :render-method #'zlorec.view:svg-bar-graph 
+					      :content-type "image/svg+xml")
+  (if (not (plusp (length user)))
+      (list :error "bad username")
+      (multiple-value-bind (values subscripts) (get-user-unit-activity user unit)
+	(values
+	 (render-svg-bar-graph values
+			       :title      (format nil "~a (~(~a~))" user unit)
+			       :subscripts subscripts)
+	 (expiration-time :month)))))
+
+(pm:define-memoized-route board-unit-activity ("pulse2.svg/:unit"
+					      :parse-vars (list :unit #'validate-small-unit)
+					      :render-method #'zlorec.view:svg-bar-graph 
+					      :content-type "image/svg+xml")
+  (multiple-value-bind (values subscripts) (get-total-unit-activity unit)
+    (values
+     (render-svg-bar-graph values
+			   :title      (format nil "Board activity (~(~a~))" unit)
+			   :subscripts subscripts)
+     (expiration-time :month))))
+					      
 (restas:define-route retrieved ("zlorec")
   (list :lastid  (max-message-id)
 	:lastbad (max-message-id :classes '(bad-message))
