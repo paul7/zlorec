@@ -4,7 +4,9 @@
 	   #:*wait-on-timeout*
 	   #:*wait-after-block*
 	   #:*block-size*
-	   #:message))
+	   #:message
+	   #:find-last-id
+	   #:max-message-id))
 
 (in-package #:zlorec)
 
@@ -57,31 +59,52 @@
 				    (asdf:component-pathname (asdf:find-system '#:zlorec)))))
 
 (restas:define-module #:zlorec-daemon
-    (:use #:cl #:iter)
+    (:use #:cl #:iter #:alexandria)
   (:export))
 
 (in-package #:zlorec-daemon)
 
 (restas:mount-submodule #:zlorec (#:zlorec))
 
-(defvar *daemon-thread* nil)
-(defparameter *daemon-thread-name* "Retrieve thread")
+(defvar *daemon-thread-name* "Retrieve thread")
 
-(defun start-daemon ()
-  (unless (and *daemon-thread*
-	       (bordeaux-threads:thread-alive-p *daemon-thread*))
-    (setf *daemon-thread* 
-	  (bordeaux-threads:make-thread #'zlorec:retrieve-loop
-					:name *daemon-thread-name*))))
+(defvar *watchdog-thread-name* "Watchdog thread")
+(defparameter *watchdog-timeout* 60)
 
-(defun stop-daemon ()
-  (if (and *daemon-thread*
-	   (bordeaux-threads:thread-alive-p *daemon-thread*))
-      (iter (for thread in (bordeaux-threads:all-threads))
-	    (if (equal *daemon-thread-name* (bordeaux-threads:thread-name thread))
-		(bordeaux-threads:destroy-thread thread)))
-      (setf *daemon-thread* nil)))
+(defmacro define-thread (symbol function)
+  (let ((start-fun (symbolicate 'start- symbol))
+	(stop-fun  (symbolicate 'stop- symbol))
+	(name      (symbolicate '* symbol '-thread-name*))
+	(thread    (symbolicate '* symbol '-thread*)))
+  `(progn 
+     (defvar ,thread nil)
+     (defvar ,name nil)
+     (defun ,start-fun ()
+       (unless (and ,thread
+		    (bordeaux-threads:thread-alive-p ,thread))
+	 (setf ,thread
+	       (bordeaux-threads:make-thread ,function
+					     :name ,name))))
+     (defun ,stop-fun ()
+       (when (and ,thread
+		  (bordeaux-threads:thread-alive-p ,thread))
+	 (bordeaux-threads:destroy-thread ,thread))
+       (setf ,thread nil)))))
+
+(defun watchdog ()
+  (iter
+    (for max-id next (zlorec:max-message-id))
+    (for prev-max-id previous max-id initially 0)
+    (for last-id next (zlorec:find-last-id))
+    (when (and (< max-id last-id)
+	       (= max-id prev-max-id)) ; we're stuck
+      (stop-daemon)
+      (start-daemon))
+    (sleep *watchdog-timeout*)))
+
+(define-thread daemon #'zlorec:retrieve-loop)
+(define-thread watchdog #'watchdog)
 
 (restas:define-initialization (context)
-  (start-daemon))
-  
+  (start-daemon)
+  (start-watchdog))
