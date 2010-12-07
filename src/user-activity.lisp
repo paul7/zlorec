@@ -1,12 +1,29 @@
 (in-package #:zlorec)
 
+(defun dow-name (dow)
+  (ecase dow
+    (0 "Su")
+    (1 "Mo")
+    (2 "Tu")
+    (3 "We")
+    (4 "Th")
+    (5 "Fr")
+    (6 "Sa")))
+
 (defun timestamp-subscript-part (timestamp unit)
   (ecase unit
     (:year  (format nil "'~2,1,0,'0@a" (mod (timestamp-year timestamp) 100)))
     (:month (timestamp-month timestamp))
     (:day   (timestamp-day timestamp))
+    (:dow   (dow-name (timestamp-day-of-week timestamp)))
     (:hour  (timestamp-hour timestamp))
     (:min   (timestamp-minute timestamp))))
+
+(defun unit-subscript (value unit)
+  (ecase unit
+    (:year  (format nil "'~2,1,0,'0@a" (mod value 100)))
+    ((:month :day :hour :min) value)
+    (:dow (dow-name value))))
 
 (defparameter *start-year* 
   (with-connection *db-spec* 
@@ -18,11 +35,13 @@
      (:year  *start-year*)
      (:month 1)
      (:day   1)
+     (:dow   0)
      (:hour  0))
    (ecase unit
      (:year  (timestamp-year (now)))
      (:month 12)
      (:day   31)
+     (:dow   6)
      (:hour  23))))
 
 (defmacro define-activity (name (&rest args) &body body)
@@ -64,14 +83,13 @@
 		     :unit unit
 		     :amount amount))
 
-
 (defun get-user-unit-activity (user unit)
   (multiple-value-bind (start end) (unit-range unit)
     (with-connection *db-spec* 
       (iter 
 	(for value from start to end)
 	(collect (user-unit-post-number user unit value) into numbers)
-	(collect value into labels)
+	(collect (unit-subscript value unit) into labels)
 	(finally (return (values numbers labels)))))))
 
 (defun get-total-unit-activity (unit)
@@ -80,5 +98,5 @@
       (iter 
 	(for value from start to end)
 	(collect (total-unit-post-number unit value) into numbers)
-	(collect value into labels)
+	(collect (unit-subscript value unit) into labels)
 	(finally (return (values numbers labels)))))))

@@ -30,7 +30,7 @@
 (defun validate-small-unit (unit)
   (cond 
     ((equalp unit "hour")  :hour)
-    ((equalp unit "day")   :day)))
+    ((equalp unit "dow")   :dow)))
 
 (defun validate-type-user (type)
   (cond 
