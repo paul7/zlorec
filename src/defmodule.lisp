@@ -13,6 +13,8 @@
 (defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 (defparameter *memo-storage* (pm:make-db-storage *db-spec*))
 
+(defparameter *unit-query-limit* '(3 :month))
+
 (restas:define-initialization (context)
   (restas:context-add-variable context 'pm:*storage* *memo-storage*))
 
@@ -98,6 +100,8 @@
     (for last-id next (zlorec:find-last-id))
     (when (and (< max-id last-id)
 	       (= max-id prev-max-id)) ; we're stuck
+      (format t "max-id: ~a last-id: ~a; restarting retrieve~%" 
+	      max-id last-id)
       (stop-daemon)
       (start-daemon))
     (sleep *watchdog-timeout*)))

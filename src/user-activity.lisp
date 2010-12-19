@@ -44,26 +44,33 @@
      (:dow   6)
      (:hour  23))))
 
-(defmacro define-activity (name (&rest args) &body body)
-  `(defun ,name (&key (now (now)) unit amount ,@args)
-     (with-connection *db-spec*
-       (iter 
-	 (for period from amount downto 1)
-	 (for date initially (timestamp- now (1- amount) unit) then (timestamp+ date 1 unit))
-	 (collect (progn ,@body)
-	   into numbers)
-	 (collect (timestamp-subscript-part date unit)
-	   into labels)
-	 (finally (return (values numbers labels)))))))
+(defun get-total-activity (&key (now (now)) unit amount)
+  (with-connection *db-spec* 
+    (with-total-dataset ((list amount unit))
+      (iter 
+	(for period from amount downto 1)
+	(for date initially (timestamp- now (1- amount) unit) then (timestamp+ date 1 unit))
+	(collect (total-post-number
+		  (list :from (timestamp- date 1 unit)
+			:to   date))
+	  into numbers)
+	(collect (timestamp-subscript-part date unit)
+	  into labels)
+	(finally (return (values numbers labels)))))))
 
-(define-activity get-total-activity ()
-  (total-post-number
-   (list :from (timestamp- date 1 unit)
-	 :to   date)))
-
-(define-activity get-user-activity (user)
-  (user-post-number user :range (list :from (timestamp- date 1 unit)
-				      :to   date)))
+(defun get-user-activity (&key (now (now)) unit amount user)
+  (with-connection *db-spec* 
+    (with-user-dataset (user (list amount unit))
+      (iter 
+	(for period from amount downto 1)
+	(for date initially (timestamp- now (1- amount) unit) then (timestamp+ date 1 unit))
+	(collect (user-post-number user 
+				   :range (list :from (timestamp- date 1 unit)
+						:to   date))
+	  into numbers)
+	(collect (timestamp-subscript-part date unit)
+	  into labels)
+	(finally (return (values numbers labels)))))))
 	  
 (defun timestamp-next-unit (unit)
   (ecase unit
@@ -85,18 +92,20 @@
 
 (defun get-user-unit-activity (user unit)
   (multiple-value-bind (start end) (unit-range unit)
-    (with-connection *db-spec* 
-      (iter 
-	(for value from start to end)
-	(collect (user-unit-post-number user unit value) into numbers)
-	(collect (unit-subscript value unit) into labels)
-	(finally (return (values numbers labels)))))))
+    (with-connection *db-spec*
+      (with-user-dataset (user *unit-query-limit*)
+	(iter 
+	  (for value from start to end)
+	  (collect (user-unit-post-number user unit value) into numbers)
+	  (collect (unit-subscript value unit) into labels)
+	  (finally (return (values numbers labels))))))))
 
 (defun get-total-unit-activity (unit)
   (multiple-value-bind (start end) (unit-range unit)
     (with-connection *db-spec* 
-      (iter 
-	(for value from start to end)
-	(collect (total-unit-post-number unit value) into numbers)
-	(collect (unit-subscript value unit) into labels)
-	(finally (return (values numbers labels)))))))
+      (with-total-dataset (*unit-query-limit*)
+	(iter 
+	  (for value from start to end)
+	  (collect (total-unit-post-number unit value) into numbers)
+	  (collect (unit-subscript value unit) into labels)
+	  (finally (return (values numbers labels))))))))
