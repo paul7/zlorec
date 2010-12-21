@@ -27,14 +27,14 @@ and date < $2
 (defprepared db-user-unit-query
     "
 select count(*) from actual_dataset
-where author = $1 and date_part($2, date) = $3
+where author = $1 and date_part($2, date at time zone 'UTC') = $3
 "
   :single)
 
 (defprepared db-total-unit-query
     "
 select count(*) from actual_dataset
-where date_part($1, date) = $2
+where date_part($1, date at time zone 'UTC') = $2
 "
   :single)
 
