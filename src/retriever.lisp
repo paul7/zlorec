@@ -302,6 +302,7 @@
       (let* ((from (1+ (max-message-id)))
 	     (to (min (find-last-id)
 		      (1- (+ amount from)))))
+	(incf *retrieve-run-time*)
 	(handler-case (progn
 			(when (>= to from)
 			  (format t "starting retrieve: from ~a to ~a~%" 

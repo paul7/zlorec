@@ -4,11 +4,14 @@
 	   #:*wait-on-timeout*
 	   #:*wait-after-block*
 	   #:*block-size*
+	   #:*retrieve-run-time*
 	   #:message
 	   #:find-last-id
 	   #:max-message-id))
 
 (in-package #:zlorec)
+
+(defvar *retrieve-run-time* 0)
 
 (defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 (defparameter *memo-storage* (pm:make-db-storage *db-spec*))
@@ -97,11 +100,12 @@
   (iter
     (for max-id next (zlorec:max-message-id))
     (for prev-max-id previous max-id initially 0)
-    (for last-id next (zlorec:find-last-id))
-    (when (and (< max-id last-id)
+    (for run-time next zlorec:*retrieve-run-time*)
+    (for prev-run-time previous run-time initially 0)
+    (when (and (= run-time prev-run-time)
 	       (= max-id prev-max-id)) ; we're stuck
-      (format t "max-id: ~a last-id: ~a; restarting retrieve~%" 
-	      max-id last-id)
+      (format t "max-id: ~a; restarting retrieve~%" 
+	      max-id)
       (stop-daemon)
       (start-daemon))
     (sleep *watchdog-timeout*)))
