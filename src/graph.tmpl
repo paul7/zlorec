@@ -36,9 +36,26 @@
   </form>
 {/template}
 
+{template pulse-form}
+  <form action="{$graphurl}" method="post">
+    <div>
+      Username: <input type="text" name="user" />
+    </div>
+    <input type="submit" name="send" value="Send" />
+  </form>
+{/template}
+
 {template graph}
   <div><object data="{$graph}"></object></div>
   <div><a href="{$graph}">Direct link</a></div>
+  <div><a href="{$return}">Return</a></div>
+{/template}
+
+{template pulse}
+  <div><object data="{$graph1}"></object></div>
+  <div><a href="{$graph1}">Direct link</a></div>
+  <div><object data="{$graph2}"></object></div>
+  <div><a href="{$graph2}">Direct link</a></div>
   <div><a href="{$return}">Return</a></div>
 {/template}
 

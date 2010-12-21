@@ -9,6 +9,9 @@
 (restas:define-route graph-form ("graph-form")
   (list :graphurl (restas:genurl 'graph)))
 
+(restas:define-route pulse-form ("pulse-form")
+  (list :graphurl (restas:genurl 'pulse)))
+
 (restas:define-route graph ("graph"
 			    :method :post
 			    :requirement #'(lambda () (hunchentoot:post-parameter "send")))
@@ -19,6 +22,20 @@
 			      :typefunc (hunchentoot:post-parameter "type"))))
     (list :graph graph
 	  :return (restas:genurl 'graph-form))))
+
+(restas:define-route pulse ("pulse"
+			    :method :post
+			    :requirement #'(lambda () (hunchentoot:post-parameter "send")))
+  (let* ((user (hunchentoot:post-parameter "user"))
+	 (graph1 (restas:genurl 'user-unit-activity
+				:user user
+				:unit "dow"))
+	 (graph2 (restas:genurl 'user-unit-activity
+				:user user
+				:unit "hour")))
+    (list :graph1 graph1
+	  :graph2 graph2
+	  :return (restas:genurl 'pulse-form))))
 
 (defun validate-unit (unit)
   (cond 
