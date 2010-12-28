@@ -26,9 +26,6 @@
     (closure-template:compile-template :common-lisp-backend
 				       (merge-pathnames "src/graph.tmpl"
 							(asdf:component-pathname (asdf:find-system '#:zlorec))))
-    (closure-template:compile-template :common-lisp-backend
-				       (merge-pathnames "src/lweb-subview.tmpl"
-							(asdf:component-pathname (asdf:find-system '#:zlorec))))
     (values))
 
   (recompile-templates))
