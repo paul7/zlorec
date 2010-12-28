@@ -52,7 +52,7 @@
 (defparameter *block-size* 100)
 
 (restas:mount-submodule #:lweb-viewer (#:lweb)
-  (*default-render-method* (render-method-for-package ':lweb.subview))
+  (*default-render-method* (render-method-for-package ':lweb.view))
   (lweb::*db-spec* *db-spec*)
   (lweb:*message-class* 'message)
   (lweb:*index-limit* 20)
