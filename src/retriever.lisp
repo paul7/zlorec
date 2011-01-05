@@ -1,6 +1,6 @@
 (in-package #:zlorec)
 
-(defclass message ()
+(defclass message (lweb:message-mixin)
   ((id        :col-type integer 
 	      :initarg :id
 	      :accessor message-id)
@@ -24,7 +24,7 @@
 	      :foreign-key (message id))
    (author    :col-type (varchar 80)
 	      :initarg :author
-	      :accessor message-author*)
+	      :accessor message-author)
    (unreg     :col-type boolean
 	      :initform nil
 	      :initarg :unreg
@@ -41,12 +41,16 @@
   (:keys id)
   (:metaclass dao-class))
 
-(defun message-author (message)
-  (list :id 1 :nick (message-author* message)))
+(defun message-author* (message)
+  (list :id 1 :nick (message-author message)))
 
-(defmethod render-default ((object message))
-  (build-render-list :message (:id :text :header :visible :root-id :author)
-		     object))
+(lweb:define-class-options message
+  (:id (message-id message))
+  (:text (message-text message))
+  (:header (message-header message))
+  (:visible (message-visible message))
+  (:root-id (message-root-id message))
+  (:author (message-author* message)))
 
 (defclass bad-message ()
   ((id        :col-type integer
