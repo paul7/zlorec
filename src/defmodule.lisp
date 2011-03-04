@@ -15,6 +15,8 @@
 
 (defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 (defparameter *memo-storage* (pm:make-db-storage *db-spec*))
+(defparameter *db-storage* (make-instance 'lweb:db-storage 
+					  :spec *db-spec*))
 
 (defparameter *unit-query-limit* '(3 :month))
 
@@ -50,7 +52,7 @@
 
 (restas:mount-submodule #:lweb-viewer (#:lweb)
   (*default-render-method* (render-method-for-package ':lweb.view))
-  (lweb::*db-spec* *db-spec*)
+  (lweb::*db-storage* *db-storage*)
   (lweb:*message-class* 'message)
   (lweb:*index-limit* 20)
   (lweb:*reverse-order* t))
