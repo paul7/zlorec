@@ -4,7 +4,7 @@
 
 (defparameter *db-spec* '("zlodb" "lisp" "lisp" "localhost" :pooled-p t))
 (defparameter *memo-storage* (pm:make-db-storage *db-spec*))
-(defparameter *db-storage* (make-instance 'db-comment-storage
+(defparameter *db-storage* (make-instance 'db-zlo-storage
 					  :spec *db-spec*))
 
 (defparameter *unit-query-limit* '(3 :month))
@@ -50,7 +50,7 @@
   `(let ((lweb::*current-user* (lweb::user-anonymous))
 	 (lweb::*message-class* 'message)
 	 (lweb::*db-storage* *db-storage*))
-     (lweb:ensure-connection
+     (lweb:with-storage *db-storage*
        ,@body)))
 
 (defun image-path (name)
